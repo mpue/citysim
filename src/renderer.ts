@@ -56,7 +56,7 @@ export class AmberRenderer {
         this.ctx.strokeRect(px + 1, py + 1, this.TILE_SIZE - 2, this.TILE_SIZE - 2);
     }
 
-    public drawResidential(x: number, y: number, development: number, powered: boolean): void {
+    public drawResidential(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
         const color = powered ? this.AMBER_COLOR : this.AMBER_DARK;
         const lightColor = powered ? this.AMBER_LIGHT : this.AMBER_COLOR;
         
@@ -85,7 +85,7 @@ export class AmberRenderer {
         }
     }
 
-    public drawCommercial(x: number, y: number, development: number, powered: boolean): void {
+    public drawCommercial(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
         const color = powered ? this.AMBER_COLOR : this.AMBER_DARK;
         const lightColor = powered ? this.AMBER_LIGHT : this.AMBER_COLOR;
         
@@ -113,7 +113,7 @@ export class AmberRenderer {
         }
     }
 
-    public drawIndustrial(x: number, y: number, development: number, powered: boolean): void {
+    public drawIndustrial(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
         const color = powered ? this.AMBER_COLOR : this.AMBER_DARK;
         const lightColor = powered ? this.AMBER_LIGHT : this.AMBER_COLOR;
         
@@ -216,6 +216,23 @@ export class AmberRenderer {
     public drawNoPowerIndicator(x: number, y: number): void {
         this.ctx.fillStyle = this.AMBER_DARK;
         this.ctx.fillRect(x + 2, y + 2, 3, 3);
+    }
+
+    public drawDragRect(start: { x: number, y: number }, end: { x: number, y: number }): void {
+        const minX = Math.min(start.x, end.x) * this.TILE_SIZE;
+        const maxX = (Math.max(start.x, end.x) + 1) * this.TILE_SIZE;
+        const minY = Math.min(start.y, end.y) * this.TILE_SIZE;
+        const maxY = (Math.max(start.y, end.y) + 1) * this.TILE_SIZE;
+        
+        this.ctx.strokeStyle = this.AMBER_LIGHT;
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([5, 5]);
+        this.ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+        this.ctx.setLineDash([]);
+        
+        // Semi-transparente Füllung
+        this.ctx.fillStyle = 'rgba(255, 165, 0, 0.1)';
+        this.ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
     }
 
     public getTileSize(): number {

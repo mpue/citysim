@@ -15,6 +15,7 @@ export interface Tile {
     powered: boolean;
     development: number;
     population: number;
+    variant: number;  // Gebäudevariante für visuelle Vielfalt
 }
 
 export interface Position {

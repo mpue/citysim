@@ -22,7 +22,8 @@ export class CityMap {
                     type: TileType.EMPTY,
                     powered: false,
                     development: 0,
-                    population: 0
+                    population: 0,
+                    variant: Math.floor(Math.random() * 4)  // 4 verschiedene Varianten
                 };
             }
         }
