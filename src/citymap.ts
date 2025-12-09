@@ -23,7 +23,8 @@ export class CityMap {
                     powered: false,
                     development: 0,
                     population: 0,
-                    variant: Math.floor(Math.random() * 4)  // 4 verschiedene Varianten
+                    variant: Math.floor(Math.random() * 4),  // 4 verschiedene Varianten
+                    powerLine: false  // Keine Stromleitung zu Beginn
                 };
             }
         }
@@ -44,6 +45,17 @@ export class CityMap {
             tile.population = 0;
         }
         return true;
+    }
+
+    public setPowerLine(x: number, y: number, hasPowerLine: boolean): boolean {
+        if (!this.isValidPosition(x, y)) return false;
+        this.map[y][x].powerLine = hasPowerLine;
+        return true;
+    }
+
+    public hasPowerLine(x: number, y: number): boolean {
+        if (!this.isValidPosition(x, y)) return false;
+        return this.map[y][x].powerLine;
     }
 
     public isValidPosition(x: number, y: number): boolean {
@@ -105,7 +117,7 @@ export class CityMap {
                 if (visited.has(nKey)) continue;
 
                 const tile = this.map[n.y][n.x];
-                const canConduct = tile.type === TileType.POWER_LINE ||
+                const canConduct = tile.powerLine ||  // Stromleitung als Overlay
                     tile.type === TileType.ROAD ||
                     tile.type === TileType.RESIDENTIAL ||
                     tile.type === TileType.COMMERCIAL ||

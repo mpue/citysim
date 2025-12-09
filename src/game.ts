@@ -264,7 +264,28 @@ export class Game {
 
         if (this.currentTool === 'bulldozer') {
             this.cityMap.setTileType(x, y, TileType.EMPTY);
+            this.cityMap.setPowerLine(x, y, false);
             this.showInfo('Gebäude abgerissen');
+            return;
+        }
+
+        // Stromleitungen als Overlay behandeln
+        if (this.currentTool === 'powerline') {
+            const cost = TILE_COSTS[TileType.POWER_LINE];
+            
+            if (this.stats.money < cost) {
+                this.showInfo(`Nicht genug Geld! Benötigt: $${cost}, Verfügbar: $${this.stats.money}`);
+                return;
+            }
+            
+            // Stromleitung auf dieser Kachel setzen
+            if (!tile.powerLine) {
+                this.cityMap.setPowerLine(x, y, true);
+                this.stats.money -= cost;
+                this.updateUI();
+                this.cityMap.updatePowerGrid();
+                this.showInfo(`Stromleitung verlegt für $${cost}`);
+            }
             return;
         }
 
@@ -272,20 +293,6 @@ export class Game {
         if (tileType === null) return;
 
         const cost = TILE_COSTS[tileType];
-        
-        // Auto-Abriss für Stromleitungen
-        if (this.currentTool === 'powerline' && tile.type !== TileType.EMPTY) {
-            // Kraftwerke und andere teure Gebäude nicht automatisch abreißen
-            if (tile.type !== TileType.POWER_PLANT && 
-                tile.type !== TileType.RESIDENTIAL && 
-                tile.type !== TileType.COMMERCIAL && 
-                tile.type !== TileType.INDUSTRIAL) {
-                this.cityMap.setTileType(x, y, TileType.EMPTY);
-            } else {
-                this.showInfo('Kann teure Gebäude nicht überbauen!');
-                return;
-            }
-        }
         
         if (tile.type !== TileType.EMPTY) {
             // Beim Ziehen von Straßen/Stromleitungen über bebaute Felder nicht nochmal meckern
@@ -458,17 +465,21 @@ export class Game {
             case TileType.POWER_PLANT:
                 this.renderer.drawPowerPlant(x, y);
                 break;
-            case TileType.POWER_LINE:
-                this.renderer.drawPowerLine(x, y);
-                break;
             case TileType.PARK:
                 this.renderer.drawPark(x, y);
                 break;
         }
+        
+        // Stromleitung als Overlay zeichnen
+        if (tile.powerLine) {
+            const powerConnections = this.getPowerLineConnections(gridX, gridY);
+            this.renderer.drawPowerLine(x, y, powerConnections.north, powerConnections.east,
+                                       powerConnections.south, powerConnections.west);
+        }
 
         // Kein-Strom-Indikator
         if (!tile.powered && tile.type !== TileType.EMPTY &&
-            tile.type !== TileType.ROAD && tile.type !== TileType.POWER_LINE) {
+            tile.type !== TileType.ROAD && !tile.powerLine) {
             this.renderer.drawNoPowerIndicator(x, y);
         }
     }
@@ -480,6 +491,18 @@ export class Game {
         const hasEast = x < this.MAP_WIDTH - 1 && map[y][x + 1].type === TileType.ROAD;
         const hasSouth = y < this.MAP_HEIGHT - 1 && map[y + 1][x].type === TileType.ROAD;
         const hasWest = x > 0 && map[y][x - 1].type === TileType.ROAD;
+        
+        return { north: hasNorth, east: hasEast, south: hasSouth, west: hasWest };
+    }
+
+    private getPowerLineConnections(x: number, y: number): { north: boolean, east: boolean, south: boolean, west: boolean } {
+        const map = this.cityMap.getAllTiles();
+        
+        // Verbindungen zu anderen Stromleitungen oder Kraftwerken
+        const hasNorth = y > 0 && (map[y - 1][x].powerLine || map[y - 1][x].type === TileType.POWER_PLANT);
+        const hasEast = x < this.MAP_WIDTH - 1 && (map[y][x + 1].powerLine || map[y][x + 1].type === TileType.POWER_PLANT);
+        const hasSouth = y < this.MAP_HEIGHT - 1 && (map[y + 1][x].powerLine || map[y + 1][x].type === TileType.POWER_PLANT);
+        const hasWest = x > 0 && (map[y][x - 1].powerLine || map[y][x - 1].type === TileType.POWER_PLANT);
         
         return { north: hasNorth, east: hasEast, south: hasSouth, west: hasWest };
     }

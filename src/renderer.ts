@@ -5,6 +5,8 @@ export class AmberRenderer {
     private readonly AMBER_DARK = '#CC8400';
     private readonly AMBER_LIGHT = '#FFD700';
     private readonly BG_COLOR = '#000000';
+    private readonly POWER_COLOR = '#00FF00';  // Grün für Stromleitungen
+    private readonly POWER_DARK = '#00AA00';
     private readonly TILE_SIZE = 24;
 
     constructor(canvas: HTMLCanvasElement) {
@@ -198,12 +200,37 @@ export class AmberRenderer {
         this.ctx.fillRect(x + 6, y + 9, 4, 2);
     }
 
-    public drawPowerLine(x: number, y: number): void {
-        this.ctx.fillStyle = this.AMBER_DARK;
-        this.ctx.fillRect(x + 7, y, 2, this.TILE_SIZE);
-        this.ctx.fillRect(x, y + 7, this.TILE_SIZE, 2);
-        this.ctx.fillStyle = this.AMBER_LIGHT;
-        this.ctx.fillRect(x + 6, y + 6, 4, 4);
+    public drawPowerLine(x: number, y: number, hasNorth: boolean, hasEast: boolean, hasSouth: boolean, hasWest: boolean): void {
+        this.ctx.fillStyle = this.POWER_DARK;
+        
+        const center = this.TILE_SIZE / 2;
+        const lineWidth = 3;
+        const offset = (this.TILE_SIZE - lineWidth) / 2;
+        
+        // Immer Zentrum zeichnen (Knotenpunkt)
+        this.ctx.fillStyle = this.POWER_COLOR;
+        this.ctx.fillRect(x + offset - 1, y + offset - 1, lineWidth + 2, lineWidth + 2);
+        
+        // Nur Verbindungen zu Nachbarn zeichnen
+        this.ctx.fillStyle = this.POWER_DARK;
+        if (hasNorth) {
+            this.ctx.fillRect(x + offset, y, lineWidth, offset);
+        }
+        if (hasEast) {
+            this.ctx.fillRect(x + offset + lineWidth, y + offset, this.TILE_SIZE - offset - lineWidth, lineWidth);
+        }
+        if (hasSouth) {
+            this.ctx.fillRect(x + offset, y + offset + lineWidth, lineWidth, this.TILE_SIZE - offset - lineWidth);
+        }
+        if (hasWest) {
+            this.ctx.fillRect(x, y + offset, offset, lineWidth);
+        }
+        
+        // Leuchtende Punkte an Verbindungen
+        this.ctx.fillStyle = this.POWER_COLOR;
+        if (hasNorth || hasSouth || hasEast || hasWest) {
+            this.ctx.fillRect(x + center - 1, y + center - 1, 2, 2);
+        }
     }
 
     public drawPark(x: number, y: number): void {

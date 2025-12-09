@@ -16,6 +16,7 @@ export interface Tile {
     development: number;
     population: number;
     variant: number;  // Gebäudevariante für visuelle Vielfalt
+    powerLine: boolean;  // Stromleitung als Overlay
 }
 
 export interface Position {
