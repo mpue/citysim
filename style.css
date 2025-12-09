@@ -1,0 +1,237 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #000000;
+    color: #FFA500;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+#container {
+    background-color: #0a0a0a;
+    border: 3px solid #FFA500;
+    padding: 10px;
+    box-shadow: 0 0 20px rgba(255, 165, 0, 0.5),
+                inset 0 0 20px rgba(255, 165, 0, 0.1);
+}
+
+#header {
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #000000;
+    border: 2px solid #CC8400;
+}
+
+#header h1 {
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: #FFD700;
+    text-shadow: 0 0 10px #FFA500;
+    margin-bottom: 5px;
+}
+
+#stats {
+    display: flex;
+    justify-content: space-around;
+    font-size: 14px;
+    color: #FFA500;
+    margin-top: 10px;
+}
+
+#stats span {
+    padding: 5px 10px;
+    background-color: #000000;
+    border: 1px solid #CC8400;
+}
+
+#speed-control {
+    margin-top: 10px;
+    padding: 10px;
+    text-align: center;
+}
+
+#speed-control label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: #FFA500;
+}
+
+#speed-slider {
+    width: 300px;
+    height: 8px;
+    background: #000000;
+    border: 2px solid #CC8400;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+#speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #FFA500;
+    cursor: pointer;
+    border: 2px solid #FFD700;
+    box-shadow: 0 0 5px #FFA500;
+}
+
+#speed-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #FFA500;
+    cursor: pointer;
+    border: 2px solid #FFD700;
+    box-shadow: 0 0 5px #FFA500;
+}
+
+#speed-display {
+    color: #FFD700;
+    font-weight: bold;
+}
+
+#game-area {
+    background-color: #000000;
+    border: 2px solid #CC8400;
+    padding: 0;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+#gameCanvas {
+    display: block;
+    background-color: #000000;
+    cursor: crosshair;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+#toolbar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #000000;
+    border: 2px solid #CC8400;
+}
+
+.tool-btn {
+    background-color: #000000;
+    color: #FFA500;
+    border: 2px solid #CC8400;
+    padding: 10px 5px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.1s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.tool-btn:hover {
+    background-color: #CC8400;
+    color: #000000;
+    box-shadow: 0 0 10px #FFA500;
+}
+
+.tool-btn.active {
+    background-color: #FFA500;
+    color: #000000;
+    border-color: #FFD700;
+    box-shadow: 0 0 15px #FFD700,
+                inset 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.tool-btn:active {
+    transform: scale(0.95);
+}
+
+#info {
+    background-color: #000000;
+    border: 2px solid #CC8400;
+    padding: 10px;
+    min-height: 40px;
+}
+
+#tile-info {
+    color: #FFA500;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* CRT Monitor Effekt */
+@keyframes flicker {
+    0% { opacity: 0.98; }
+    50% { opacity: 1; }
+    100% { opacity: 0.98; }
+}
+
+#gameCanvas {
+    animation: flicker 0.15s infinite alternate;
+}
+
+/* Scanline Effekt */
+#game-area::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+}
+
+/* Leuchten-Effekt */
+#container::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(255, 165, 0, 0.1) 0%,
+        transparent 70%
+    );
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Responsive Design */
+@media (max-width: 800px) {
+    #toolbar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    #stats {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    #header h1 {
+        font-size: 20px;
+    }
+}

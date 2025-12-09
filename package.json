@@ -1,0 +1,17 @@
+{
+  "name": "citysim-amber",
+  "version": "1.0.0",
+  "description": "Städtebausimulation im Stil des ersten SimCity mit Bernstein-Optik",
+  "main": "dist/game.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "dev": "tsc --watch"
+  },
+  "keywords": ["simcity", "simulation", "amber", "hercules"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

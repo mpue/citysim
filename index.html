@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CitySim - Hercules Amber Edition</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <h1>CITYSIM</h1>
+            <div id="stats">
+                <span>BEVÖLKERUNG: <span id="population">0</span></span>
+                <span>GELD: $<span id="money">20000</span></span>
+                <span>JAHR: <span id="year">1900</span></span>
+            </div>
+            <div id="speed-control">
+                <label for="speed-slider">GESCHWINDIGKEIT: <span id="speed-display">Normal</span></label>
+                <input type="range" id="speed-slider" min="500" max="8000" value="2000" step="500">
+            </div>
+        </div>
+        
+        <div id="game-area">
+            <canvas id="gameCanvas" width="1080" height="720"></canvas>
+        </div>
+        
+        <div id="toolbar">
+            <button class="tool-btn" data-tool="bulldozer">ABREISSEN</button>
+            <button class="tool-btn active" data-tool="residential">WOHNGEBIET<br>$100</button>
+            <button class="tool-btn" data-tool="commercial">GEWERBE<br>$100</button>
+            <button class="tool-btn" data-tool="industrial">INDUSTRIE<br>$100</button>
+            <button class="tool-btn" data-tool="road">STRASSE<br>$10</button>
+            <button class="tool-btn" data-tool="power">KRAFTWERK<br>$3000</button>
+            <button class="tool-btn" data-tool="powerline">STROMLEITUNG<br>$5</button>
+            <button class="tool-btn" data-tool="park">PARK<br>$20</button>
+        </div>
+        
+        <div id="info">
+            <div id="tile-info">Wähle ein Werkzeug und klicke auf die Karte um deine Stadt zu bauen</div>
+        </div>
+    </div>
+    
+    <script type="module" src="dist/main.js"></script>
+</body>
+</html>
