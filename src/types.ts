@@ -37,6 +37,11 @@ export interface Vehicle {
     color: string;
     lane: 'left' | 'right';  // Fahrspur (rechts = rechte Fahrbahn)
     stopped: boolean;  // Ob Fahrzeug an Ampel wartet
+    turning?: boolean;  // Ob Fahrzeug gerade abbiegt
+    turnProgress?: number;  // Fortschritt der Kurve (0-1)
+    turnFrom?: 'north' | 'south' | 'east' | 'west';  // Ursprungsrichtung
+    turnStartX?: number;  // Startposition X der Kurve
+    turnStartY?: number;  // Startposition Y der Kurve
 }
 
 export interface Position {

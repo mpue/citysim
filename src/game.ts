@@ -725,10 +725,18 @@ export class Game {
         const tileSize = this.renderer.getTileSize();
         const colors = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6'];
         const directions: Array<'north' | 'south' | 'east' | 'west'> = ['north', 'south', 'east', 'west'];
-        const lanes: Array<'left' | 'right'> = ['left', 'right'];
         
         const direction = directions[Math.floor(Math.random() * directions.length)];
-        const lane = lanes[Math.floor(Math.random() * lanes.length)];
+        
+        // Rechtsverkehr: Spur basierend auf Richtung
+        // Nord/Süd: Nord fährt rechts (right), Süd fährt links (left)
+        // Ost/West: Ost fährt unten (right), West fährt oben (left)
+        let lane: 'left' | 'right';
+        if (direction === 'north' || direction === 'east') {
+            lane = 'right';  // Rechte Fahrbahn
+        } else {
+            lane = 'left';   // Linke Fahrbahn (Gegenverkehr)
+        }
         
         // Startposition basierend auf Richtung und Fahrspur
         let startX = tileX * tileSize + tileSize / 2;
@@ -748,10 +756,12 @@ export class Game {
             x: startX,
             y: startY,
             direction,
-            speed: 0.8 + Math.random() * 0.7,  // Moderater: 0.8-1.5 Pixel/Frame bei 60 FPS
+            speed: 0.5 + Math.random() * 1.5,  // Varianz: 0.5-2.0 Pixel/Frame (langsam bis schnell)
             color: colors[Math.floor(Math.random() * colors.length)],
             lane,
-            stopped: false
+            stopped: false,
+            turning: false,
+            turnProgress: 0
         };
         
         this.vehicles.push(vehicle);
@@ -787,23 +797,86 @@ export class Game {
                 }
             }
             
+            // Kollisionserkennung: Prüfe ob Fahrzeug vor uns ist
+            if (!vehicle.stopped) {
+                const vehicleAhead = this.checkVehicleAhead(vehicle, i);
+                if (vehicleAhead) {
+                    vehicle.stopped = true;
+                }
+            }
+            
             // Fahrzeug nur bewegen wenn nicht gestoppt
             if (!vehicle.stopped) {
                 const moveSpeed = vehicle.speed * speedMultiplier;
                 
-                switch (vehicle.direction) {
-                    case 'north':
-                        vehicle.y -= moveSpeed;
-                        break;
-                    case 'south':
-                        vehicle.y += moveSpeed;
-                        break;
-                    case 'east':
-                        vehicle.x += moveSpeed;
-                        break;
-                    case 'west':
-                        vehicle.x -= moveSpeed;
-                        break;
+                // Wenn Fahrzeug gerade abbiegt, nutze Kurven-Animation
+                if (vehicle.turning && vehicle.turnProgress !== undefined && 
+                    vehicle.turnFrom && vehicle.turnStartX !== undefined && vehicle.turnStartY !== undefined) {
+                    
+                    // Erhöhe Kurven-Fortschritt
+                    vehicle.turnProgress += moveSpeed / 12; // Kurve über ~12 Pixel
+                    
+                    if (vehicle.turnProgress >= 1) {
+                        // Kurve abgeschlossen
+                        vehicle.turning = false;
+                        vehicle.turnProgress = 0;
+                        
+                        // Setze finale Position
+                        const tileSize = this.renderer.getTileSize();
+                        const laneOffset = 3.5;
+                        const centerX = vehicle.tileX * tileSize + tileSize / 2;
+                        const centerY = vehicle.tileY * tileSize + tileSize / 2;
+                        
+                        if (vehicle.direction === 'north' || vehicle.direction === 'south') {
+                            vehicle.x = centerX + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
+                        } else {
+                            vehicle.y = centerY + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
+                        }
+                    } else {
+                        // Berechne Kurven-Position (Bezier-Kurve)
+                        const t = vehicle.turnProgress;
+                        const tileSize = this.renderer.getTileSize();
+                        const laneOffset = 3.5;
+                        
+                        // Start- und Endpositionen
+                        const startX = vehicle.turnStartX;
+                        const startY = vehicle.turnStartY;
+                        
+                        const centerX = vehicle.tileX * tileSize + tileSize / 2;
+                        const centerY = vehicle.tileY * tileSize + tileSize / 2;
+                        
+                        let endX = centerX;
+                        let endY = centerY;
+                        if (vehicle.direction === 'north' || vehicle.direction === 'south') {
+                            endX = centerX + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
+                        } else {
+                            endY = centerY + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
+                        }
+                        
+                        // Kontrollpunkt für sanfte Kurve
+                        const ctrlX = (startX + endX) / 2;
+                        const ctrlY = (startY + endY) / 2;
+                        
+                        // Quadratische Bezier-Kurve
+                        vehicle.x = (1-t)*(1-t)*startX + 2*(1-t)*t*ctrlX + t*t*endX;
+                        vehicle.y = (1-t)*(1-t)*startY + 2*(1-t)*t*ctrlY + t*t*endY;
+                    }
+                } else {
+                    // Normale Bewegung
+                    switch (vehicle.direction) {
+                        case 'north':
+                            vehicle.y -= moveSpeed;
+                            break;
+                        case 'south':
+                            vehicle.y += moveSpeed;
+                            break;
+                        case 'east':
+                            vehicle.x += moveSpeed;
+                            break;
+                        case 'west':
+                            vehicle.x -= moveSpeed;
+                            break;
+                    }
                 }
             }
             
@@ -811,28 +884,29 @@ export class Game {
             const newTileX = Math.floor(vehicle.x / tileSize);
             const newTileY = Math.floor(vehicle.y / tileSize);
             
+            // Prüfe ob Fahrzeug außerhalb der Karte ist
+            if (newTileX < 0 || newTileX >= this.MAP_WIDTH ||
+                newTileY < 0 || newTileY >= this.MAP_HEIGHT) {
+                this.vehicles.splice(i, 1);
+                continue;
+            }
+            
             // Wenn Fahrzeug Tile-Grenze überschreitet, prüfe ob abbiegen nötig
             if (newTileX !== vehicle.tileX || newTileY !== vehicle.tileY) {
+                // Prüfe ob neues Tile eine Straße ist
+                const newTile = map[newTileY][newTileX];
+                if (newTile.type !== TileType.ROAD) {
+                    // Nicht auf Straße - entfernen
+                    this.vehicles.splice(i, 1);
+                    continue;
+                }
+                
                 vehicle.tileX = newTileX;
                 vehicle.tileY = newTileY;
                 
-                // Prüfe ob neue Richtung gewählt werden muss
-                if (vehicle.tileX >= 0 && vehicle.tileX < this.MAP_WIDTH &&
-                    vehicle.tileY >= 0 && vehicle.tileY < this.MAP_HEIGHT) {
-                    
-                    const tile = map[vehicle.tileY][vehicle.tileX];
-                    if (tile.type === TileType.ROAD) {
-                        const connections = this.getRoadConnections(vehicle.tileX, vehicle.tileY);
-                        this.updateVehicleDirection(vehicle, connections);
-                    }
-                }
-            }
-            
-            // Fahrzeug entfernen wenn außerhalb der Karte oder nicht mehr auf Straße
-            if (vehicle.tileX < 0 || vehicle.tileX >= this.MAP_WIDTH ||
-                vehicle.tileY < 0 || vehicle.tileY >= this.MAP_HEIGHT ||
-                map[vehicle.tileY][vehicle.tileX].type !== TileType.ROAD) {
-                this.vehicles.splice(i, 1);
+                // Neue Richtung wählen basierend auf Verbindungen
+                const connections = this.getRoadConnections(vehicle.tileX, vehicle.tileY);
+                this.updateVehicleDirection(vehicle, connections);
             }
         }
     }
@@ -864,21 +938,68 @@ export class Game {
             // Ansonsten geradeaus weiterfahren
         }
         
-        // Wenn Richtung geändert wurde, Position für neue Fahrspur anpassen
+        // Wenn Richtung geändert wurde, starte Kurven-Animation
         if (oldDirection !== vehicle.direction) {
-            // Zentriere Position auf Tile
-            const centerX = vehicle.tileX * tileSize + tileSize / 2;
-            const centerY = vehicle.tileY * tileSize + tileSize / 2;
-            
-            // Setze neue Position basierend auf neuer Richtung und Fahrspur
-            if (vehicle.direction === 'north' || vehicle.direction === 'south') {
-                vehicle.x = centerX + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
-                vehicle.y = centerY;
+            // Rechtsverkehr: Spur basierend auf neue Richtung
+            if (vehicle.direction === 'north' || vehicle.direction === 'east') {
+                vehicle.lane = 'right';
             } else {
-                vehicle.x = centerX;
-                vehicle.y = centerY + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
+                vehicle.lane = 'left';
+            }
+            
+            // Starte Kurven-Animation
+            vehicle.turning = true;
+            vehicle.turnProgress = 0;
+            vehicle.turnFrom = oldDirection;
+            vehicle.turnStartX = vehicle.x;
+            vehicle.turnStartY = vehicle.y;
+        }
+    }
+
+    private checkVehicleAhead(vehicle: Vehicle, currentIndex: number): Vehicle | null {
+        const safeDistance = 8; // Mindestabstand in Pixeln
+        
+        // Prüfe alle anderen Fahrzeuge
+        for (let i = 0; i < this.vehicles.length; i++) {
+            if (i === currentIndex) continue; // Nicht sich selbst prüfen
+            
+            const other = this.vehicles[i];
+            
+            // Nur Fahrzeuge in gleicher Richtung und Spur prüfen
+            if (other.direction !== vehicle.direction || other.lane !== vehicle.lane) {
+                continue;
+            }
+            
+            // Berechne ob anderes Fahrzeug vor uns ist
+            let isAhead = false;
+            let distance = 0;
+            
+            switch (vehicle.direction) {
+                case 'north':
+                    isAhead = other.y < vehicle.y;
+                    distance = vehicle.y - other.y;
+                    break;
+                case 'south':
+                    isAhead = other.y > vehicle.y;
+                    distance = other.y - vehicle.y;
+                    break;
+                case 'east':
+                    isAhead = other.x > vehicle.x;
+                    distance = other.x - vehicle.x;
+                    break;
+                case 'west':
+                    isAhead = other.x < vehicle.x;
+                    distance = vehicle.x - other.x;
+                    break;
+            }
+            
+            // Wenn Fahrzeug vor uns und zu nah, stoppen
+            if (isAhead && distance < safeDistance) {
+                return other;
             }
         }
+        
+        return null;
     }
 
     private getPowerLineConnections(x: number, y: number): { north: boolean, east: boolean, south: boolean, west: boolean } {
