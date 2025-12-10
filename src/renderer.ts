@@ -208,11 +208,11 @@ export class AmberRenderer {
         }
     }
 
-    public drawRoad(x: number, y: number, hasNorth: boolean, hasEast: boolean, hasSouth: boolean, hasWest: boolean): void {
+    public drawRoad(x: number, y: number, hasNorth: boolean, hasEast: boolean, hasSouth: boolean, hasWest: boolean, traffic: number = 0, vehicles?: any[]): void {
         this.ctx.fillStyle = this.ROAD_COLOR;
         
         const center = this.TILE_SIZE / 2;
-        const roadWidth = 8;
+        const roadWidth = 14;  // Breiter: von 8 auf 14
         const offset = (this.TILE_SIZE - roadWidth) / 2;
         
         // Immer Zentrum zeichnen
@@ -232,21 +232,58 @@ export class AmberRenderer {
             this.ctx.fillRect(x, y + offset, offset, roadWidth);
         }
         
-        // Gelbe Markierungslinien
+        // Gelbe Markierungslinien (dünner wegen breiterer Straße)
         this.ctx.fillStyle = this.ROAD_LINE;
         const hasVertical = hasNorth || hasSouth;
         const hasHorizontal = hasEast || hasWest;
         
         if (hasVertical && !hasHorizontal) {
-            // Vertikale Straße - gestrichelte Linie
+            // Vertikale Straße - gestrichelte Mittellinie
             for (let i = 0; i < this.TILE_SIZE; i += 4) {
-                this.ctx.fillRect(x + center - 1, y + i, 2, 2);
+                this.ctx.fillRect(x + center - 0.5, y + i, 1, 2);
             }
         } else if (hasHorizontal && !hasVertical) {
-            // Horizontale Straße - gestrichelte Linie
+            // Horizontale Straße - gestrichelte Mittellinie
             for (let i = 0; i < this.TILE_SIZE; i += 4) {
-                this.ctx.fillRect(x + i, y + center - 1, 2, 2);
+                this.ctx.fillRect(x + i, y + center - 0.5, 2, 1);
             }
+        }
+        
+        // Fahrzeuge zeichnen wenn Verkehr vorhanden
+        if (vehicles && vehicles.length > 0) {
+            for (const vehicle of vehicles) {
+                this.drawVehicle(vehicle.x, vehicle.y, vehicle.direction, vehicle.color, vehicle.lane);
+            }
+        }
+    }
+
+    public drawTrafficLight(x: number, y: number, state: number): void {
+        const center = this.TILE_SIZE / 2;
+        const radius = 2;
+        
+        // Nord-Süd Ampel (links)
+        this.ctx.beginPath();
+        this.ctx.arc(x + center - 4, y + center - 4, radius, 0, Math.PI * 2);
+        this.ctx.fillStyle = state === 1 ? '#e74c3c' : '#27ae60';  // RED_NS = rot, sonst grün
+        this.ctx.fill();
+        
+        // Ost-West Ampel (rechts)
+        this.ctx.beginPath();
+        this.ctx.arc(x + center + 4, y + center + 4, radius, 0, Math.PI * 2);
+        this.ctx.fillStyle = state === 2 ? '#e74c3c' : '#27ae60';  // RED_EW = rot, sonst grün
+        this.ctx.fill();
+    }
+
+    private drawVehicle(x: number, y: number, direction: string, color: string, lane: 'left' | 'right'): void {
+        const size = 3;
+        this.ctx.fillStyle = color;
+        
+        // Position bereits basierend auf lane berechnet (aus spawnVehicle)
+        // Einfaches Rechteck als Fahrzeug
+        if (direction === 'north' || direction === 'south') {
+            this.ctx.fillRect(x - 1, y - size/2, 2, size);
+        } else {
+            this.ctx.fillRect(x - size/2, y - 1, size, 2);
         }
     }
 

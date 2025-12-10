@@ -17,6 +17,26 @@ export interface Tile {
     population: number;
     variant: number;  // Gebäudevariante für visuelle Vielfalt
     powerLine: boolean;  // Stromleitung als Overlay
+    traffic: number;  // Verkehrsdichte (0-100)
+    trafficLight?: TrafficLightState;  // Ampelzustand an Kreuzungen
+}
+
+export enum TrafficLightState {
+    NONE = 0,
+    RED_NS = 1,    // Rot für Nord-Süd, Grün für Ost-West
+    RED_EW = 2     // Rot für Ost-West, Grün für Nord-Süd
+}
+
+export interface Vehicle {
+    x: number;
+    y: number;
+    tileX: number;
+    tileY: number;
+    direction: 'north' | 'south' | 'east' | 'west';
+    speed: number;
+    color: string;
+    lane: 'left' | 'right';  // Fahrspur (rechts = rechte Fahrbahn)
+    stopped: boolean;  // Ob Fahrzeug an Ampel wartet
 }
 
 export interface Position {

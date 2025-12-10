@@ -1,7 +1,7 @@
 import { CityMap } from './citymap.js';
 import { AmberRenderer } from './renderer.js';
 import { SimulationEngine } from './simulation.js';
-import { TileType, ToolType, TILE_COSTS, Position, GameStats } from './types.js';
+import { TileType, ToolType, TILE_COSTS, Position, GameStats, Vehicle } from './types.js';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -21,6 +21,9 @@ export class Game {
     private zoom: number;
     private offsetX: number;
     private offsetY: number;
+    private vehicles: Vehicle[];
+    private lastFrameTime: number;
+    private deltaTime: number;
 
     private readonly MAP_WIDTH = 45;
     private readonly MAP_HEIGHT = 30;
@@ -55,6 +58,9 @@ export class Game {
         this.zoom = 1.5;  // Näher herangezoomt
         this.offsetX = 0;
         this.offsetY = 0;
+        this.vehicles = [];
+        this.lastFrameTime = performance.now();
+        this.deltaTime = 0;
 
         this.stats = {
             money: 20000,
@@ -64,8 +70,12 @@ export class Game {
         };
 
         this.setupEventListeners();
+        this.setupSaveLoadButtons();
         this.startGameLoop();
         this.startSimulation();
+        
+        // Automatisch laden beim Start
+        this.autoLoad();
     }
 
     private resizeCanvas(): void {
@@ -73,6 +83,79 @@ export class Game {
         if (container) {
             this.canvas.width = container.clientWidth;
             this.canvas.height = container.clientHeight;
+        };
+    }
+
+    private setupSaveLoadButtons(): void {
+        const saveBtn = document.getElementById('save-btn');
+        const loadBtn = document.getElementById('load-btn');
+        
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveGame());
+        }
+        if (loadBtn) {
+            loadBtn.addEventListener('click', () => this.loadGame());
+        }
+    }
+
+    private saveGame(): void {
+        try {
+            const saveData = {
+                map: this.cityMap.getAllTiles(),
+                stats: this.stats,
+                timestamp: Date.now()
+            };
+            
+            localStorage.setItem('citysim_save', JSON.stringify(saveData));
+            this.showInfo('Spiel erfolgreich gespeichert!');
+        } catch (e) {
+            this.showInfo('Fehler beim Speichern: ' + (e as Error).message);
+        }
+    }
+
+    private loadGame(): void {
+        try {
+            const saveDataStr = localStorage.getItem('citysim_save');
+            if (!saveDataStr) {
+                this.showInfo('Kein gespeichertes Spiel gefunden!');
+                return;
+            }
+            
+            const saveData = JSON.parse(saveDataStr);
+            
+            // Karte wiederherstellen
+            const map = this.cityMap.getAllTiles();
+            for (let y = 0; y < this.MAP_HEIGHT; y++) {
+                for (let x = 0; x < this.MAP_WIDTH; x++) {
+                    if (saveData.map[y] && saveData.map[y][x]) {
+                        Object.assign(map[y][x], saveData.map[y][x]);
+                    }
+                }
+            }
+            
+            // Stats wiederherstellen
+            this.stats = saveData.stats;
+            
+            // Power Grid neu berechnen
+            this.cityMap.updatePowerGrid();
+            
+            this.updateUI();
+            this.showInfo('Spiel erfolgreich geladen!');
+        } catch (e) {
+            this.showInfo('Fehler beim Laden: ' + (e as Error).message);
+        }
+    }
+
+    private autoLoad(): void {
+        const saveDataStr = localStorage.getItem('citysim_save');
+        if (saveDataStr) {
+            // Automatisch laden nach 1 Sekunde wenn Speicherstand vorhanden
+            setTimeout(() => {
+                const autoload = confirm('Gespeichertes Spiel gefunden. M\u00f6chtest du es laden?');
+                if (autoload) {
+                    this.loadGame();
+                }
+            }, 500);
         }
     }
 
@@ -133,13 +216,31 @@ export class Game {
 
             // Während des Ziehens
             if (this.isDragging && this.dragStartPos) {
-                this.dragEndPos = pos;
+                let targetPos = pos;
+                
+                // Shift-Taste: Nur horizontale oder vertikale Verbindungen für Straßen/Stromleitungen
+                if (e.shiftKey && (this.currentTool === 'road' || this.currentTool === 'powerline')) {
+                    const dx = Math.abs(pos.x - this.dragStartPos.x);
+                    const dy = Math.abs(pos.y - this.dragStartPos.y);
+                    
+                    // Entscheiden ob horizontal oder vertikal basierend auf größerer Distanz
+                    if (dx > dy) {
+                        // Horizontal - Y festhalten
+                        targetPos = { x: pos.x, y: this.dragStartPos.y };
+                    } else {
+                        // Vertikal - X festhalten
+                        targetPos = { x: this.dragStartPos.x, y: pos.y };
+                    }
+                    this.selectedTile = targetPos;
+                }
+                
+                this.dragEndPos = targetPos;
                 
                 // Nur für Straßen und Stromleitungen: kontinuierlich platzieren
                 if (this.currentTool === 'road' || this.currentTool === 'powerline') {
-                    if (pos.x !== this.dragStartPos.x || pos.y !== this.dragStartPos.y) {
-                        this.handleTileClick(pos.x, pos.y);
-                        this.dragStartPos = pos;
+                    if (targetPos.x !== this.dragStartPos.x || targetPos.y !== this.dragStartPos.y) {
+                        this.handleTileClick(targetPos.x, targetPos.y);
+                        this.dragStartPos = targetPos;
                     }
                 }
             }
@@ -426,8 +527,29 @@ export class Game {
         const income = this.simulation.simulate();
         this.stats.money += income;
         this.stats.population = this.cityMap.calculatePopulation();
+        
+        // Verkehr auf Straßen berechnen
+        this.updateTraffic();
+        
+        // Ampeln aktualisieren und schalten
+        this.cityMap.updateTrafficLights();
+        this.cycleTrafficLights();
 
         this.updateUI();
+    }
+
+    // Ampeln zwischen RED_NS und RED_EW wechseln
+    private cycleTrafficLights(): void {
+        const map = this.cityMap.getAllTiles();
+        for (let y = 0; y < this.MAP_HEIGHT; y++) {
+            for (let x = 0; x < this.MAP_WIDTH; x++) {
+                const tile = map[y][x];
+                if (tile.trafficLight) {
+                    // Zwischen 1 (RED_NS) und 2 (RED_EW) wechseln
+                    tile.trafficLight = tile.trafficLight === 1 ? 2 : 1;
+                }
+            }
+        }
     }
 
     private updateUI(): void {
@@ -520,8 +642,14 @@ export class Game {
                 break;
             case TileType.ROAD:
                 const roadConnections = this.getRoadConnections(gridX, gridY);
+                const roadVehicles = this.vehicles.filter(v => v.tileX === gridX && v.tileY === gridY);
                 this.renderer.drawRoad(x, y, roadConnections.north, roadConnections.east, 
-                                      roadConnections.south, roadConnections.west);
+                                      roadConnections.south, roadConnections.west, tile.traffic, roadVehicles);
+                
+                // Ampel zeichnen falls vorhanden
+                if (tile.trafficLight) {
+                    this.renderer.drawTrafficLight(x, y, tile.trafficLight);
+                }
                 break;
             case TileType.POWER_PLANT:
                 this.renderer.drawPowerPlant(x, y);
@@ -556,6 +684,203 @@ export class Game {
         return { north: hasNorth, east: hasEast, south: hasSouth, west: hasWest };
     }
 
+    private updateTraffic(): void {
+        const map = this.cityMap.getAllTiles();
+        
+        // Verkehrsdichte für jede Straße basierend auf angrenzenden Gebäuden berechnen
+        for (let y = 0; y < this.MAP_HEIGHT; y++) {
+            for (let x = 0; x < this.MAP_WIDTH; x++) {
+                const tile = map[y][x];
+                if (tile.type === TileType.ROAD) {
+                    let traffic = 0;
+                    
+                    // Angrenzende Gebäude zählen
+                    const neighbors = [
+                        y > 0 ? map[y-1][x] : null,
+                        y < this.MAP_HEIGHT - 1 ? map[y+1][x] : null,
+                        x > 0 ? map[y][x-1] : null,
+                        x < this.MAP_WIDTH - 1 ? map[y][x+1] : null
+                    ];
+                    
+                    for (const neighbor of neighbors) {
+                        if (neighbor && (neighbor.type === TileType.RESIDENTIAL || 
+                            neighbor.type === TileType.COMMERCIAL || 
+                            neighbor.type === TileType.INDUSTRIAL)) {
+                            traffic += neighbor.population + (neighbor.development * 10);
+                        }
+                    }
+                    
+                    tile.traffic = Math.min(100, traffic);
+                    
+                    // Fahrzeuge basierend auf Verkehrsdichte erstellen (höhere Spawn-Rate)
+                    if (tile.traffic > 20 && Math.random() < 0.3) {
+                        this.spawnVehicle(x, y);
+                    }
+                }
+            }
+        }
+    }
+
+    private spawnVehicle(tileX: number, tileY: number): void {
+        const tileSize = this.renderer.getTileSize();
+        const colors = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6'];
+        const directions: Array<'north' | 'south' | 'east' | 'west'> = ['north', 'south', 'east', 'west'];
+        const lanes: Array<'left' | 'right'> = ['left', 'right'];
+        
+        const direction = directions[Math.floor(Math.random() * directions.length)];
+        const lane = lanes[Math.floor(Math.random() * lanes.length)];
+        
+        // Startposition basierend auf Richtung und Fahrspur
+        let startX = tileX * tileSize + tileSize / 2;
+        let startY = tileY * tileSize + tileSize / 2;
+        
+        // Offset für Fahrspuren (3.5 Pixel vom Zentrum)
+        const laneOffset = 3.5;
+        if (direction === 'north' || direction === 'south') {
+            startX += lane === 'right' ? laneOffset : -laneOffset;
+        } else {
+            startY += lane === 'right' ? laneOffset : -laneOffset;
+        }
+        
+        const vehicle: Vehicle = {
+            tileX,
+            tileY,
+            x: startX,
+            y: startY,
+            direction,
+            speed: 0.8 + Math.random() * 0.7,  // Moderater: 0.8-1.5 Pixel/Frame bei 60 FPS
+            color: colors[Math.floor(Math.random() * colors.length)],
+            lane,
+            stopped: false
+        };
+        
+        this.vehicles.push(vehicle);
+        
+        // Maximale Anzahl Fahrzeuge begrenzen (erhöht für mehr Verkehr)
+        if (this.vehicles.length > 200) {
+            this.vehicles.shift();
+        }
+    }
+
+    private updateVehicles(): void {
+        const tileSize = this.renderer.getTileSize();
+        const map = this.cityMap.getAllTiles();
+        
+        // DeltaTime-Multiplikator für gleichmäßige Bewegung (60 FPS Basis)
+        const speedMultiplier = this.deltaTime * 60;
+        
+        for (let i = this.vehicles.length - 1; i >= 0; i--) {
+            const vehicle = this.vehicles[i];
+            
+            // Aktuelles Tile prüfen
+            const currentTile = map[vehicle.tileY]?.[vehicle.tileX];
+            
+            // Ampelstatus prüfen
+            vehicle.stopped = false;
+            if (currentTile?.trafficLight) {
+                const isNorthSouth = vehicle.direction === 'north' || vehicle.direction === 'south';
+                const isRedForMe = (currentTile.trafficLight === 1 && isNorthSouth) ||  // RED_NS
+                                   (currentTile.trafficLight === 2 && !isNorthSouth);   // RED_EW
+                
+                if (isRedForMe) {
+                    vehicle.stopped = true;
+                }
+            }
+            
+            // Fahrzeug nur bewegen wenn nicht gestoppt
+            if (!vehicle.stopped) {
+                const moveSpeed = vehicle.speed * speedMultiplier;
+                
+                switch (vehicle.direction) {
+                    case 'north':
+                        vehicle.y -= moveSpeed;
+                        break;
+                    case 'south':
+                        vehicle.y += moveSpeed;
+                        break;
+                    case 'east':
+                        vehicle.x += moveSpeed;
+                        break;
+                    case 'west':
+                        vehicle.x -= moveSpeed;
+                        break;
+                }
+            }
+            
+            // Tile-Position aktualisieren
+            const newTileX = Math.floor(vehicle.x / tileSize);
+            const newTileY = Math.floor(vehicle.y / tileSize);
+            
+            // Wenn Fahrzeug Tile-Grenze überschreitet, prüfe ob abbiegen nötig
+            if (newTileX !== vehicle.tileX || newTileY !== vehicle.tileY) {
+                vehicle.tileX = newTileX;
+                vehicle.tileY = newTileY;
+                
+                // Prüfe ob neue Richtung gewählt werden muss
+                if (vehicle.tileX >= 0 && vehicle.tileX < this.MAP_WIDTH &&
+                    vehicle.tileY >= 0 && vehicle.tileY < this.MAP_HEIGHT) {
+                    
+                    const tile = map[vehicle.tileY][vehicle.tileX];
+                    if (tile.type === TileType.ROAD) {
+                        const connections = this.getRoadConnections(vehicle.tileX, vehicle.tileY);
+                        this.updateVehicleDirection(vehicle, connections);
+                    }
+                }
+            }
+            
+            // Fahrzeug entfernen wenn außerhalb der Karte oder nicht mehr auf Straße
+            if (vehicle.tileX < 0 || vehicle.tileX >= this.MAP_WIDTH ||
+                vehicle.tileY < 0 || vehicle.tileY >= this.MAP_HEIGHT ||
+                map[vehicle.tileY][vehicle.tileX].type !== TileType.ROAD) {
+                this.vehicles.splice(i, 1);
+            }
+        }
+    }
+
+    private updateVehicleDirection(vehicle: Vehicle, connections: { north: boolean, east: boolean, south: boolean, west: boolean }): void {
+        const possibleDirections: Array<'north' | 'south' | 'east' | 'west'> = [];
+        const tileSize = this.renderer.getTileSize();
+        const laneOffset = 3.5;
+        
+        // Sammle mögliche Richtungen (nicht zurück)
+        if (connections.north && vehicle.direction !== 'south') possibleDirections.push('north');
+        if (connections.south && vehicle.direction !== 'north') possibleDirections.push('south');
+        if (connections.east && vehicle.direction !== 'west') possibleDirections.push('east');
+        if (connections.west && vehicle.direction !== 'east') possibleDirections.push('west');
+        
+        const oldDirection = vehicle.direction;
+        
+        // Wenn nur eine Möglichkeit: gehe diese Richtung
+        if (possibleDirections.length === 1) {
+            vehicle.direction = possibleDirections[0];
+        }
+        // Wenn mehrere Möglichkeiten: bevorzuge geradeaus, sonst zufällig abbiegen
+        else if (possibleDirections.length > 1) {
+            // Versuche geradeaus zu bleiben
+            if (!possibleDirections.includes(vehicle.direction)) {
+                // Muss abbiegen - wähle zufällige neue Richtung
+                vehicle.direction = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
+            }
+            // Ansonsten geradeaus weiterfahren
+        }
+        
+        // Wenn Richtung geändert wurde, Position für neue Fahrspur anpassen
+        if (oldDirection !== vehicle.direction) {
+            // Zentriere Position auf Tile
+            const centerX = vehicle.tileX * tileSize + tileSize / 2;
+            const centerY = vehicle.tileY * tileSize + tileSize / 2;
+            
+            // Setze neue Position basierend auf neuer Richtung und Fahrspur
+            if (vehicle.direction === 'north' || vehicle.direction === 'south') {
+                vehicle.x = centerX + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
+                vehicle.y = centerY;
+            } else {
+                vehicle.x = centerX;
+                vehicle.y = centerY + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
+            }
+        }
+    }
+
     private getPowerLineConnections(x: number, y: number): { north: boolean, east: boolean, south: boolean, west: boolean } {
         const map = this.cityMap.getAllTiles();
         
@@ -569,7 +894,14 @@ export class Game {
     }
 
     private startGameLoop(): void {
-        const loop = () => {
+        const loop = (currentTime: number) => {
+            // Delta time in Sekunden berechnen
+            this.deltaTime = (currentTime - this.lastFrameTime) / 1000;
+            this.lastFrameTime = currentTime;
+            
+            // Fahrzeuge in jedem Frame bewegen (nicht nur bei Simulation)
+            this.updateVehicles();
+            
             this.render();
             requestAnimationFrame(loop);
         };
