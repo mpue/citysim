@@ -5,187 +5,236 @@
 }
 
 body {
-    background-color: #000000;
-    color: #FFA500;
-    font-family: 'Courier New', monospace;
-    font-weight: bold;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 500;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
     min-height: 100vh;
-    padding: 20px;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
 }
 
 #container {
-    background-color: #0a0a0a;
-    border: 3px solid #FFA500;
-    padding: 10px;
-    box-shadow: 0 0 20px rgba(255, 165, 0, 0.5),
-                inset 0 0 20px rgba(255, 165, 0, 0.1);
+    background: rgba(26, 26, 46, 0.95);
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
 }
 
 #header {
     text-align: center;
-    margin-bottom: 10px;
-    padding: 10px;
-    background-color: #000000;
-    border: 2px solid #CC8400;
+    margin-bottom: 0;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(233, 69, 96, 0.1) 100%);
+    border-radius: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
 }
 
 #header h1 {
-    font-size: 28px;
-    letter-spacing: 4px;
-    color: #FFD700;
-    text-shadow: 0 0 10px #FFA500;
-    margin-bottom: 5px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #4a90e2 0%, #e94560 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
 }
 
 #stats {
     display: flex;
-    justify-content: space-around;
-    font-size: 14px;
-    color: #FFA500;
-    margin-top: 10px;
+    justify-content: center;
+    gap: 20px;
+    font-size: 13px;
+    color: #e0e0e0;
+    margin-top: 8px;
 }
 
 #stats span {
-    padding: 5px 10px;
-    background-color: #000000;
-    border: 1px solid #CC8400;
+    padding: 6px 15px;
+    background: linear-gradient(135deg, rgba(74, 144, 226, 0.2) 0%, rgba(233, 69, 96, 0.2) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+#stats span:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
 }
 
 #speed-control {
-    margin-top: 10px;
-    padding: 10px;
+    margin-top: 8px;
+    padding: 8px 15px;
     text-align: center;
+    background: rgba(22, 33, 62, 0.5);
+    border-radius: 0;
 }
 
 #speed-control label {
     display: block;
-    margin-bottom: 5px;
-    font-size: 12px;
-    color: #FFA500;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #b0b0b0;
+    letter-spacing: 1px;
 }
 
 #speed-slider {
-    width: 300px;
-    height: 8px;
-    background: #000000;
-    border: 2px solid #CC8400;
+    width: 100%;
+    max-width: 400px;
+    height: 6px;
+    background: linear-gradient(90deg, #4a90e2 0%, #e94560 100%);
+    border-radius: 3px;
     outline: none;
     -webkit-appearance: none;
     appearance: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 #speed-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
-    background: #FFA500;
+    width: 18px;
+    height: 18px;
+    background: #00d4ff;
     cursor: pointer;
-    border: 2px solid #FFD700;
-    box-shadow: 0 0 5px #FFA500;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+#speed-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 1);
 }
 
 #speed-slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: #FFA500;
+    width: 18px;
+    height: 18px;
+    background: #00d4ff;
     cursor: pointer;
-    border: 2px solid #FFD700;
-    box-shadow: 0 0 5px #FFA500;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 #speed-display {
-    color: #FFD700;
-    font-weight: bold;
+    color: #00d4ff;
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 8px;
 }
 
 #game-area {
-    background-color: #000000;
-    border: 2px solid #CC8400;
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.8) 0%, rgba(22, 33, 62, 0.8) 100%);
+    border: none;
+    border-radius: 0;
     padding: 0;
-    margin-bottom: 10px;
+    margin: 0;
     position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
 }
 
 #gameCanvas {
     display: block;
-    background-color: #000000;
+    border-radius: 0;
+    box-shadow: none;
     cursor: crosshair;
-    image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
 }
 
 #toolbar {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 5px;
-    margin-bottom: 10px;
-    padding: 10px;
-    background-color: #000000;
-    border: 2px solid #CC8400;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    margin: 0;
+    padding: 10px 15px;
+    background: rgba(22, 33, 62, 0.9);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0;
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
 }
 
 .tool-btn {
-    background-color: #000000;
-    color: #FFA500;
-    border: 2px solid #CC8400;
-    padding: 10px 5px;
-    font-family: 'Courier New', monospace;
-    font-weight: bold;
-    font-size: 11px;
+    background: linear-gradient(135deg, rgba(52, 73, 94, 0.8) 0%, rgba(44, 62, 80, 0.8) 100%);
+    color: #e0e0e0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 8px 6px;
+    font-family: 'Segoe UI', sans-serif;
+    font-weight: 500;
+    font-size: 10px;
     cursor: pointer;
-    transition: all 0.1s;
+    transition: all 0.3s ease;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .tool-btn:hover {
-    background-color: #CC8400;
-    color: #000000;
-    box-shadow: 0 0 10px #FFA500;
+    background: linear-gradient(135deg, rgba(74, 144, 226, 0.6) 0%, rgba(52, 152, 219, 0.6) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+    border-color: rgba(74, 144, 226, 0.6);
 }
 
 .tool-btn.active {
-    background-color: #FFA500;
-    color: #000000;
-    border-color: #FFD700;
-    box-shadow: 0 0 15px #FFD700,
-                inset 0 0 10px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, #4a90e2 0%, #e94560 100%);
+    color: #ffffff;
+    border-color: #00d4ff;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.6),
+                inset 0 1px 3px rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 .tool-btn:active {
-    transform: scale(0.95);
+    transform: translateY(0) scale(0.98);
 }
 
 #info {
-    background-color: #000000;
-    border: 2px solid #CC8400;
-    padding: 10px;
-    min-height: 40px;
+    background: rgba(22, 33, 62, 0.9);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0;
+    padding: 8px 15px;
+    min-height: 30px;
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
 }
 
 #tile-info {
-    color: #FFA500;
-    font-size: 12px;
-    line-height: 1.5;
+    color: #00d4ff;
+    font-size: 11px;
+    line-height: 1.4;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
 }
 
-/* CRT Monitor Effekt */
-@keyframes flicker {
-    0% { opacity: 0.98; }
-    50% { opacity: 1; }
-    100% { opacity: 0.98; }
+/* Moderne Animationen */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.95; }
 }
 
 #gameCanvas {
-    animation: flicker 0.15s infinite alternate;
+    animation: pulse 4s infinite ease-in-out;
 }
 
-/* Scanline Effekt */
+/* Subtiles Overlay statt Scanlines */
 #game-area::after {
     content: "";
     position: absolute;
@@ -195,29 +244,18 @@ body {
     bottom: 0;
     background: repeating-linear-gradient(
         0deg,
-        rgba(0, 0, 0, 0.15),
-        rgba(0, 0, 0, 0.15) 1px,
+        rgba(0, 0, 0, 0.02),
+        rgba(0, 0, 0, 0.02) 1px,
         transparent 1px,
-        transparent 2px
+        transparent 3px
     );
     pointer-events: none;
+    border-radius: 0;
 }
 
-/* Leuchten-Effekt */
+/* Glow-Effekt entfernt für Fullscreen */
 #container::before {
-    content: "";
-    position: absolute;
-    top: -10px;
-    left: -10px;
-    right: -10px;
-    bottom: -10px;
-    background: radial-gradient(
-        ellipse at center,
-        rgba(255, 165, 0, 0.1) 0%,
-        transparent 70%
-    );
-    pointer-events: none;
-    z-index: -1;
+    display: none;
 }
 
 /* Responsive Design */

@@ -22,6 +22,8 @@ export interface Tile {
 export interface Position {
     x: number;
     y: number;
+    width?: number;  // Optionale Breite für Multi-Tile-Gebäude
+    height?: number; // Optionale Höhe für Multi-Tile-Gebäude
 }
 
 export interface GameStats {

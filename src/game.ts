@@ -35,6 +35,11 @@ export class Game {
         }
 
         this.canvas = canvas;
+        
+        // Canvas auf Fenstergröße setzen
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+        
         this.renderer = new AmberRenderer(canvas);
         this.cityMap = new CityMap(this.MAP_WIDTH, this.MAP_HEIGHT);
         this.simulation = new SimulationEngine(this.cityMap);
@@ -47,7 +52,7 @@ export class Game {
         this.simulationSpeed = this.DEFAULT_SIMULATION_SPEED;
         this.isPanning = false;
         this.panStartPos = null;
-        this.zoom = 1.0;
+        this.zoom = 1.5;  // Näher herangezoomt
         this.offsetX = 0;
         this.offsetY = 0;
 
@@ -61,6 +66,14 @@ export class Game {
         this.setupEventListeners();
         this.startGameLoop();
         this.startSimulation();
+    }
+
+    private resizeCanvas(): void {
+        const container = document.getElementById('game-area');
+        if (container) {
+            this.canvas.width = container.clientWidth;
+            this.canvas.height = container.clientHeight;
+        }
     }
 
     private setupEventListeners(): void {
@@ -112,6 +125,11 @@ export class Game {
             
             const pos = this.getCanvasPosition(e);
             this.selectedTile = pos;
+            
+            // Cursor-Vorschau für 2x2 Kraftwerk
+            if (this.currentTool === 'power') {
+                this.selectedTile = { ...pos, width: 2, height: 2 };
+            }
 
             // Während des Ziehens
             if (this.isDragging && this.dragStartPos) {
@@ -294,6 +312,42 @@ export class Game {
 
         const cost = TILE_COSTS[tileType];
         
+        // Kraftwerk benötigt 2x2 Kacheln
+        if (tileType === TileType.POWER_PLANT) {
+            if (x >= this.MAP_WIDTH - 1 || y >= this.MAP_HEIGHT - 1) {
+                this.showInfo('Kraftwerk benötigt 2x2 Kacheln - zu nah am Rand!');
+                return;
+            }
+            
+            // Prüfe alle 4 Kacheln
+            for (let dy = 0; dy < 2; dy++) {
+                for (let dx = 0; dx < 2; dx++) {
+                    const checkTile = this.cityMap.getTile(x + dx, y + dy);
+                    if (!checkTile || checkTile.type !== TileType.EMPTY) {
+                        this.showInfo('Kraftwerk benötigt 2x2 freie Kacheln!');
+                        return;
+                    }
+                }
+            }
+            
+            if (this.stats.money < cost) {
+                this.showInfo(`Nicht genug Geld! Benötigt: $${cost}, Verfügbar: $${this.stats.money}`);
+                return;
+            }
+            
+            // Baue Kraftwerk auf allen 4 Kacheln
+            this.stats.money -= cost;
+            for (let dy = 0; dy < 2; dy++) {
+                for (let dx = 0; dx < 2; dx++) {
+                    this.cityMap.setTileType(x + dx, y + dy, TileType.POWER_PLANT);
+                }
+            }
+            this.updateUI();
+            this.showInfo(`Kraftwerk gebaut für $${cost}`);
+            this.cityMap.updatePowerGrid();
+            return;
+        }
+        
         if (tile.type !== TileType.EMPTY) {
             // Beim Ziehen von Straßen/Stromleitungen über bebaute Felder nicht nochmal meckern
             if (!this.isDragging) {
@@ -311,10 +365,6 @@ export class Game {
         this.cityMap.setTileType(x, y, tileType);
         this.updateUI();
         this.showInfo(`${this.getToolName(this.currentTool)} gebaut für $${cost}`);
-
-        if (tileType === TileType.POWER_PLANT) {
-            this.cityMap.updatePowerGrid();
-        }
     }
 
     private toolToTileType(tool: ToolType): TileType | null {
@@ -425,11 +475,22 @@ export class Game {
                 const py = y * tileSize;
 
                 this.renderTile(px, py, tile, x, y);
-
-                // Ausgewählte Kachel markieren
-                if (this.selectedTile && this.selectedTile.x === x && this.selectedTile.y === y) {
-                    this.renderer.highlightTile(x, y);
-                }
+            }
+        }
+        
+        // Ausgewählte Kachel(n) markieren
+        if (this.selectedTile) {
+            if (this.selectedTile.width && this.selectedTile.height) {
+                // Multi-Tile Highlight (z.B. 2x2 Kraftwerk)
+                this.renderer.drawMultiTileHighlight(
+                    this.selectedTile.x, 
+                    this.selectedTile.y, 
+                    this.selectedTile.width, 
+                    this.selectedTile.height
+                );
+            } else {
+                // Einzelne Kachel
+                this.renderer.highlightTile(this.selectedTile.x, this.selectedTile.y);
             }
         }
 
