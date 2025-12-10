@@ -2,6 +2,12 @@
 export class AmberRenderer {
     private ctx: CanvasRenderingContext2D;
     
+    // Icon Caches
+    private houseIcons: HTMLImageElement[] = [];
+    private commercialIcons: HTMLImageElement[] = [];
+    private industrialIcons: HTMLImageElement[] = [];
+    private iconsLoaded: boolean = false;
+    
     // Moderne Farbpalette
     private readonly BG_COLOR = '#1a1a2e';
     private readonly GRID_COLOR = '#16213e';
@@ -49,6 +55,42 @@ export class AmberRenderer {
         this.ctx = context;
         this.setupAmberDisplay();
         this.animationTime = Date.now();
+        this.loadIcons();
+    }
+
+    private loadIcons(): void {
+        // Lade Wohngebäude-Icons
+        for (let i = 1; i <= 4; i++) {
+            const img = new Image();
+            img.src = `icons/house_${i}.png`;
+            this.houseIcons.push(img);
+        }
+        
+        // Lade Gewerbe-Icons
+        for (let i = 1; i <= 4; i++) {
+            const img = new Image();
+            img.src = `icons/commercial_${i}.png`;
+            this.commercialIcons.push(img);
+        }
+        
+        // Lade Industrie-Icons
+        for (let i = 1; i <= 4; i++) {
+            const img = new Image();
+            img.src = `icons/industrial_${i}.png`;
+            this.industrialIcons.push(img);
+        }
+        
+        // Warte bis alle Icons geladen sind
+        const allIcons = [...this.houseIcons, ...this.commercialIcons, ...this.industrialIcons];
+        let loadedCount = 0;
+        allIcons.forEach(img => {
+            img.onload = () => {
+                loadedCount++;
+                if (loadedCount === allIcons.length) {
+                    this.iconsLoaded = true;
+                }
+            };
+        });
     }
 
     private setupAmberDisplay(): void {
@@ -103,6 +145,22 @@ export class AmberRenderer {
     }
 
     public drawResidential(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
+        if (this.iconsLoaded && variant >= 0 && variant < 4) {
+            const icon = this.houseIcons[variant];
+            if (icon.complete) {
+                // Zeichne Icon zentriert im Tile
+                this.ctx.drawImage(icon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+                
+                // Zeige unpowered mit dunklem Overlay
+                if (!powered) {
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+                }
+                return;
+            }
+        }
+        
+        // Fallback: Original-Rendering
         const color = powered ? this.RES_BASE : this.RES_DARK;
         const lightColor = powered ? this.RES_LIGHT : this.RES_BASE;
         const shadowColor = 'rgba(0, 0, 0, 0.3)';
@@ -136,6 +194,22 @@ export class AmberRenderer {
     }
 
     public drawCommercial(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
+        if (this.iconsLoaded && variant >= 0 && variant < 4) {
+            const icon = this.commercialIcons[variant];
+            if (icon.complete) {
+                // Zeichne Icon zentriert im Tile
+                this.ctx.drawImage(icon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+                
+                // Zeige unpowered mit dunklem Overlay
+                if (!powered) {
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+                }
+                return;
+            }
+        }
+        
+        // Fallback: Original-Rendering
         const color = powered ? this.COM_BASE : this.COM_DARK;
         const lightColor = powered ? this.COM_LIGHT : this.COM_BASE;
         const shadowColor = 'rgba(0, 0, 0, 0.3)';
@@ -168,6 +242,22 @@ export class AmberRenderer {
     }
 
     public drawIndustrial(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
+        if (this.iconsLoaded && variant >= 0 && variant < 4) {
+            const icon = this.industrialIcons[variant];
+            if (icon.complete) {
+                // Zeichne Icon zentriert im Tile
+                this.ctx.drawImage(icon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+                
+                // Zeige unpowered mit dunklem Overlay
+                if (!powered) {
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+                }
+                return;
+            }
+        }
+        
+        // Fallback: Original-Rendering
         const color = powered ? this.IND_BASE : this.IND_DARK;
         const lightColor = powered ? this.IND_LIGHT : this.IND_BASE;
         const shadowColor = 'rgba(0, 0, 0, 0.3)';
@@ -198,13 +288,6 @@ export class AmberRenderer {
                 this.ctx.fillStyle = '#95a5a6';
                 this.ctx.fillRect(chimX, y, 3, 2);
             }
-        }
-        
-        // Große Tore/Öffnungen
-        this.ctx.fillStyle = this.BG_COLOR;
-        this.ctx.fillRect(x + 7, y + 12, 4, 5);
-        if (development > 1) {
-            this.ctx.fillRect(x + 13, y + 12, 4, 5);
         }
     }
 
