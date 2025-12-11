@@ -7,7 +7,9 @@ export enum TileType {
     ROAD = 4,
     POWER_PLANT = 5,
     POWER_LINE = 6,
-    PARK = 7
+    PARK = 7,
+    HOSPITAL = 8,
+    POLICE = 9
 }
 
 export interface Tile {
@@ -56,10 +58,11 @@ export interface GameStats {
     population: number;
     year: number;
     month: number;
+    happiness: number;  // Bürgerzufriedenheit (0-100)
 }
 
 export type ToolType = 'bulldozer' | 'residential' | 'commercial' | 'industrial' | 
-                       'road' | 'power' | 'powerline' | 'park';
+                       'road' | 'power' | 'powerline' | 'park' | 'hospital' | 'police';
 
 export const TILE_COSTS: Record<TileType, number> = {
     [TileType.EMPTY]: 0,
@@ -69,5 +72,7 @@ export const TILE_COSTS: Record<TileType, number> = {
     [TileType.ROAD]: 10,
     [TileType.POWER_PLANT]: 3000,
     [TileType.POWER_LINE]: 5,
-    [TileType.PARK]: 20
+    [TileType.PARK]: 20,
+    [TileType.HOSPITAL]: 500,
+    [TileType.POLICE]: 500
 };

@@ -6,6 +6,9 @@ export class AmberRenderer {
     private houseIcons: HTMLImageElement[] = [];
     private commercialIcons: HTMLImageElement[] = [];
     private industrialIcons: HTMLImageElement[] = [];
+    private hospitalIcon: HTMLImageElement | null = null;
+    private policeIcon: HTMLImageElement | null = null;
+    private powerplantIcon: HTMLImageElement | null = null;
     private iconsLoaded: boolean = false;
     
     // Moderne Farbpalette
@@ -80,8 +83,27 @@ export class AmberRenderer {
             this.industrialIcons.push(img);
         }
         
+        // Lade Hospital Icon
+        this.hospitalIcon = new Image();
+        this.hospitalIcon.src = 'icons/hospital.png';
+        
+        // Lade Police Icon
+        this.policeIcon = new Image();
+        this.policeIcon.src = 'icons/police.png';
+        
+        // Lade Powerplant Icon
+        this.powerplantIcon = new Image();
+        this.powerplantIcon.src = 'icons/powerplant.png';
+        
         // Warte bis alle Icons geladen sind
-        const allIcons = [...this.houseIcons, ...this.commercialIcons, ...this.industrialIcons];
+        const allIcons = [
+            ...this.houseIcons, 
+            ...this.commercialIcons, 
+            ...this.industrialIcons,
+            this.hospitalIcon,
+            this.policeIcon,
+            this.powerplantIcon
+        ];
         let loadedCount = 0;
         allIcons.forEach(img => {
             img.onload = () => {
@@ -294,6 +316,41 @@ export class AmberRenderer {
         }
     }
 
+    public drawHospital(x: number, y: number, powered: boolean): void {
+        if (this.hospitalIcon && this.hospitalIcon.complete) {
+            this.ctx.drawImage(this.hospitalIcon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+            
+            if (!powered) {
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+            }
+        } else {
+            // Fallback: rotes Kreuz
+            this.ctx.fillStyle = powered ? '#e74c3c' : '#c0392b';
+            this.ctx.fillRect(x + 4, y + 4, 16, 16);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillRect(x + 10, y + 6, 4, 12);
+            this.ctx.fillRect(x + 6, y + 10, 12, 4);
+        }
+    }
+
+    public drawPolice(x: number, y: number, powered: boolean): void {
+        if (this.policeIcon && this.policeIcon.complete) {
+            this.ctx.drawImage(this.policeIcon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+            
+            if (!powered) {
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+            }
+        } else {
+            // Fallback: blaues Schild
+            this.ctx.fillStyle = powered ? '#3498db' : '#2980b9';
+            this.ctx.fillRect(x + 4, y + 4, 16, 16);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillRect(x + 8, y + 8, 8, 8);
+        }
+    }
+
     public drawRoad(x: number, y: number, hasNorth: boolean, hasEast: boolean, hasSouth: boolean, hasWest: boolean, traffic: number = 0, vehicles?: any[]): void {
         this.ctx.fillStyle = this.ROAD_COLOR;
         
@@ -374,7 +431,15 @@ export class AmberRenderer {
     }
 
     public drawPowerPlant(x: number, y: number): void {
-        const size = this.TILE_SIZE * 2;
+        const size = this.TILE_SIZE * 3;
+        
+        // Versuche Icon zu rendern, falls geladen
+        if (this.iconsLoaded && this.powerplantIcon && this.powerplantIcon.complete) {
+            this.ctx.drawImage(this.powerplantIcon, x, y, size, size);
+            return;
+        }
+        
+        // Fallback: Gezeichnetes Kraftwerk
         const shadowColor = 'rgba(0, 0, 0, 0.4)';
         
         // Schatten

@@ -73,7 +73,8 @@ export class Game {
             money: 20000,
             population: 0,
             year: 1900,
-            month: 0
+            month: 0,
+            happiness: 100
         };
 
         this.setupEventListeners();
@@ -520,7 +521,9 @@ export class Game {
             'road': TileType.ROAD,
             'power': TileType.POWER_PLANT,
             'powerline': TileType.POWER_LINE,
-            'park': TileType.PARK
+            'park': TileType.PARK,
+            'hospital': TileType.HOSPITAL,
+            'police': TileType.POLICE
         };
         return mapping[tool] ?? null;
     }
@@ -534,6 +537,8 @@ export class Game {
             'power': 'Kraftwerk',
             'powerline': 'Stromleitung',
             'park': 'Park',
+            'hospital': 'Krankenhaus',
+            'police': 'Polizeistation',
             'bulldozer': 'Abriss'
         };
         return names[tool] ?? tool;
@@ -578,8 +583,82 @@ export class Game {
         // Ampeln aktualisieren und schalten
         this.cityMap.updateTrafficLights();
         this.cycleTrafficLights();
+        
+        // Zufriedenheit berechnen
+        this.updateHappiness();
 
         this.updateUI();
+    }
+
+    private updateHappiness(): void {
+        const map = this.cityMap.getAllTiles();
+        let hospitals = 0;
+        let policeStations = 0;
+        
+        // Zähle Services
+        for (let y = 0; y < this.MAP_HEIGHT; y++) {
+            for (let x = 0; x < this.MAP_WIDTH; x++) {
+                const tile = map[y][x];
+                if (tile.type === TileType.HOSPITAL) hospitals++;
+                if (tile.type === TileType.POLICE) policeStations++;
+            }
+        }
+        
+        // Berechne Zufriedenheit basierend auf Bevölkerung und Services
+        // Basis: 100%
+        let happiness = 100;
+        
+        // Pro 5000 Einwohner brauchen wir mindestens 1 Krankenhaus
+        const neededHospitals = Math.ceil(this.stats.population / 5000);
+        const hospitalDeficit = Math.max(0, neededHospitals - hospitals);
+        happiness -= hospitalDeficit * 10; // -10% pro fehlendem Krankenhaus
+        
+        // Pro 5000 Einwohner brauchen wir mindestens 1 Polizeistation
+        const neededPolice = Math.ceil(this.stats.population / 5000);
+        const policeDeficit = Math.max(0, neededPolice - policeStations);
+        happiness -= policeDeficit * 10; // -10% pro fehlender Polizeistation
+        
+        // Begrenzen auf 0-100
+        this.stats.happiness = Math.max(0, Math.min(100, happiness));
+        
+        // UI aktualisieren
+        this.updateHappinessUI(hospitals, policeStations);
+    }
+
+    private updateHappinessUI(hospitals: number, policeStations: number): void {
+        const happinessBar = document.getElementById('happiness-bar');
+        const happinessValue = document.getElementById('happiness-value');
+        const hospitalCount = document.getElementById('hospital-count');
+        const policeCount = document.getElementById('police-count');
+        
+        if (happinessBar) {
+            happinessBar.style.width = `${this.stats.happiness}%`;
+            
+            // Farbe je nach Zufriedenheit
+            if (this.stats.happiness >= 70) {
+                happinessBar.style.background = 'linear-gradient(90deg, #27ae60 0%, #2ecc71 100%)';
+            } else if (this.stats.happiness >= 40) {
+                happinessBar.style.background = 'linear-gradient(90deg, #f39c12 0%, #f1c40f 100%)';
+            } else {
+                happinessBar.style.background = 'linear-gradient(90deg, #e74c3c 0%, #c0392b 100%)';
+            }
+        }
+        
+        if (happinessValue) {
+            happinessValue.textContent = `${Math.round(this.stats.happiness)}%`;
+            
+            // Farbe des Texts anpassen
+            if (this.stats.happiness >= 70) {
+                happinessValue.style.color = '#2ecc71';
+            } else if (this.stats.happiness >= 40) {
+                happinessValue.style.color = '#f1c40f';
+            } else {
+                happinessValue.style.color = '#e74c3c';
+            }
+        }
+        
+        if (hospitalCount) hospitalCount.textContent = hospitals.toString();
+        if (policeCount) policeCount.textContent = policeStations.toString();
     }
 
     // Ampeln zwischen RED_NS und RED_EW wechseln
@@ -700,6 +779,12 @@ export class Game {
                 break;
             case TileType.PARK:
                 this.renderer.drawPark(x, y);
+                break;
+            case TileType.HOSPITAL:
+                this.renderer.drawHospital(x, y, tile.powered);
+                break;
+            case TileType.POLICE:
+                this.renderer.drawPolice(x, y, tile.powered);
                 break;
         }
         

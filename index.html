@@ -28,6 +28,27 @@
             </div>
         </div>
         
+        <div id="sidebar">
+            <h3>BÜRGER</h3>
+            <div id="happiness-container">
+                <div class="stat-label">ZUFRIEDENHEIT</div>
+                <div id="happiness-bar-container">
+                    <div id="happiness-bar"></div>
+                </div>
+                <div id="happiness-value">100%</div>
+            </div>
+            <div id="services-info">
+                <div class="service-stat">
+                    <span class="service-icon">⚕</span>
+                    <span>Krankenhäuser: <span id="hospital-count">0</span></span>
+                </div>
+                <div class="service-stat">
+                    <span class="service-icon">👮</span>
+                    <span>Polizeistationen: <span id="police-count">0</span></span>
+                </div>
+            </div>
+        </div>
+        
         <div id="game-area">
             <canvas id="gameCanvas"></canvas>
         </div>
@@ -41,6 +62,8 @@
             <button class="tool-btn" data-tool="power">KRAFTWERK<br>$3000</button>
             <button class="tool-btn" data-tool="powerline">STROMLEITUNG<br>$5</button>
             <button class="tool-btn" data-tool="park">PARK<br>$20</button>
+            <button class="tool-btn" data-tool="hospital">KRANKENHAUS<br>$500</button>
+            <button class="tool-btn" data-tool="police">POLIZEI<br>$500</button>
         </div>
         
         <div id="info">
