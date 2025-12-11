@@ -458,19 +458,19 @@ export class Game {
 
         const cost = TILE_COSTS[tileType];
         
-        // Kraftwerk benötigt 2x2 Kacheln
+        // Kraftwerk benötigt 3x3 Kacheln
         if (tileType === TileType.POWER_PLANT) {
-            if (x >= this.MAP_WIDTH - 1 || y >= this.MAP_HEIGHT - 1) {
-                this.showInfo('Kraftwerk benötigt 2x2 Kacheln - zu nah am Rand!');
+            if (x >= this.MAP_WIDTH - 2 || y >= this.MAP_HEIGHT - 2) {
+                this.showInfo('Kraftwerk benötigt 3x3 Kacheln - zu nah am Rand!');
                 return;
             }
             
-            // Prüfe alle 4 Kacheln
-            for (let dy = 0; dy < 2; dy++) {
-                for (let dx = 0; dx < 2; dx++) {
+            // Prüfe alle 9 Kacheln
+            for (let dy = 0; dy < 3; dy++) {
+                for (let dx = 0; dx < 3; dx++) {
                     const checkTile = this.cityMap.getTile(x + dx, y + dy);
                     if (!checkTile || checkTile.type !== TileType.EMPTY) {
-                        this.showInfo('Kraftwerk benötigt 2x2 freie Kacheln!');
+                        this.showInfo('Kraftwerk benötigt 3x3 freie Kacheln!');
                         return;
                     }
                 }
@@ -481,10 +481,10 @@ export class Game {
                 return;
             }
             
-            // Baue Kraftwerk auf allen 4 Kacheln
+            // Baue Kraftwerk auf allen 9 Kacheln
             this.stats.money -= cost;
-            for (let dy = 0; dy < 2; dy++) {
-                for (let dx = 0; dx < 2; dx++) {
+            for (let dy = 0; dy < 3; dy++) {
+                for (let dx = 0; dx < 3; dx++) {
                     this.cityMap.setTileType(x + dx, y + dy, TileType.POWER_PLANT);
                 }
             }
@@ -775,7 +775,13 @@ export class Game {
                 }
                 break;
             case TileType.POWER_PLANT:
-                this.renderer.drawPowerPlant(x, y);
+                // Nur auf der Hauptkachel (linke obere) zeichnen
+                // Prüfe ob dies die linke obere Ecke eines 3x3 Kraftwerks ist
+                const isMainPowerPlant = (gridX === 0 || this.cityMap.getTile(gridX - 1, gridY)?.type !== TileType.POWER_PLANT) &&
+                                         (gridY === 0 || this.cityMap.getTile(gridX, gridY - 1)?.type !== TileType.POWER_PLANT);
+                if (isMainPowerPlant) {
+                    this.renderer.drawPowerPlant(x, y);
+                }
                 break;
             case TileType.PARK:
                 this.renderer.drawPark(x, y);

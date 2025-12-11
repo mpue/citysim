@@ -1,6 +1,6 @@
 # CitySim - Hercules Amber Edition
 
-Eine Städtebausimulation im Stil des ersten SimCity für den Browser, mit authentischer Bernstein-Monochrom-Grafik, wie sie auf Hercules-Grafikkarten und Bernstein-Monitoren dargestellt wurde.
+Eine Städtebausimulation im Stil des ersten SimCity für den Browser, mit minimalistischer Grafik.
 
 ## Features
 
