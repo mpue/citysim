@@ -9,19 +9,22 @@
 <body>
     <div id="container">
         <div id="header">
-            <h1>CITYSIM</h1>
-            <div id="stats">
-                <span>BEVÖLKERUNG: <span id="population">0</span></span>
-                <span>GELD: $<span id="money">20000</span></span>
-                <span>JAHR: <span id="year">1900</span></span>
-            </div>
-            <div id="speed-control">
+            <img src="icons/logo.png" alt="CitySim Logo" id="logo">
+            <div id="header-content">
+                <h1>CITYSIM</h1>
+                <div id="stats">
+                    <span>BEVÖLKERUNG: <span id="population">0</span></span>
+                    <span>GELD: $<span id="money">20000</span></span>
+                    <span>JAHR: <span id="year">1900</span></span>
+                </div>
+                <div id="speed-control">
                 <label for="speed-slider">GESCHWINDIGKEIT: <span id="speed-display">Normal</span></label>
                 <input type="range" id="speed-slider" min="500" max="8000" value="2000" step="500">
                 <div id="save-load-controls">
                     <button id="save-btn" class="control-btn">SPEICHERN</button>
                     <button id="load-btn" class="control-btn">LADEN</button>
                 </div>
+            </div>
             </div>
         </div>
         

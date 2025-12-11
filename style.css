@@ -31,13 +31,32 @@ body {
 }
 
 #header {
-    text-align: center;
+    display: flex;
+    align-items: stretch;
     margin-bottom: 0;
-    padding: 10px 20px;
-    background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(233, 69, 96, 0.1) 100%);
+    padding: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(233, 69, 96, 0.3) 100%);
     border-radius: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
+    gap: 0;
+}
+
+#logo {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    padding: 5px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+#header-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    padding: 10px 20px;
 }
 
 #header h1 {

@@ -145,7 +145,8 @@ export class AmberRenderer {
     }
 
     public drawResidential(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
-        if (this.iconsLoaded && variant >= 0 && variant < 4) {
+        // Icons nur bei bebauten Gebieten (development > 0)
+        if (development > 0 && this.iconsLoaded && variant >= 0 && variant < 4) {
             const icon = this.houseIcons[variant];
             if (icon.complete) {
                 // Zeichne Icon zentriert im Tile
@@ -194,7 +195,8 @@ export class AmberRenderer {
     }
 
     public drawCommercial(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
-        if (this.iconsLoaded && variant >= 0 && variant < 4) {
+        // Icons nur bei bebauten Gebieten (development > 0)
+        if (development > 0 && this.iconsLoaded && variant >= 0 && variant < 4) {
             const icon = this.commercialIcons[variant];
             if (icon.complete) {
                 // Zeichne Icon zentriert im Tile
@@ -242,7 +244,8 @@ export class AmberRenderer {
     }
 
     public drawIndustrial(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
-        if (this.iconsLoaded && variant >= 0 && variant < 4) {
+        // Icons nur bei bebauten Gebieten (development > 0)
+        if (development > 0 && this.iconsLoaded && variant >= 0 && variant < 4) {
             const icon = this.industrialIcons[variant];
             if (icon.complete) {
                 // Zeichne Icon zentriert im Tile

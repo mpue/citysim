@@ -24,6 +24,9 @@ export class Game {
     private vehicles: Vehicle[];
     private lastFrameTime: number;
     private deltaTime: number;
+    private backgroundMusic: HTMLAudioElement[];
+    private currentTrack: number;
+    private clickSound: HTMLAudioElement;
 
     private readonly MAP_WIDTH = 45;
     private readonly MAP_HEIGHT = 30;
@@ -61,6 +64,10 @@ export class Game {
         this.vehicles = [];
         this.lastFrameTime = performance.now();
         this.deltaTime = 0;
+        this.backgroundMusic = [];
+        this.currentTrack = 0;
+        this.clickSound = new Audio('fx/click.wav');
+        this.clickSound.volume = 0.5;  // 50% Lautstärke
 
         this.stats = {
             money: 20000,
@@ -71,11 +78,42 @@ export class Game {
 
         this.setupEventListeners();
         this.setupSaveLoadButtons();
+        this.setupBackgroundMusic();
         this.startGameLoop();
         this.startSimulation();
         
         // Automatisch laden beim Start
         this.autoLoad();
+    }
+
+    private setupBackgroundMusic(): void {
+        // Lade beide Tracks
+        const track1 = new Audio('songs/The_quietness_part1.mp3');
+        const track2 = new Audio('songs/The_quietness_part2.mp3');
+        
+        track1.volume = 0.3;  // 30% Lautstärke
+        track2.volume = 0.3;
+        
+        this.backgroundMusic = [track1, track2];
+        
+        // Event Listener für automatischen Wechsel
+        track1.addEventListener('ended', () => {
+            this.currentTrack = 1;
+            this.backgroundMusic[1].play().catch(e => console.log('Audio playback failed:', e));
+        });
+        
+        track2.addEventListener('ended', () => {
+            this.currentTrack = 0;
+            this.backgroundMusic[0].play().catch(e => console.log('Audio playback failed:', e));
+        });
+        
+        // Starte ersten Track (nur nach User-Interaktion möglich)
+        // Versuche beim ersten Click zu starten
+        const startMusic = () => {
+            this.backgroundMusic[0].play().catch(e => console.log('Audio playback failed:', e));
+            document.removeEventListener('click', startMusic);
+        };
+        document.addEventListener('click', startMusic, { once: true });
     }
 
     private resizeCanvas(): void {
@@ -160,6 +198,12 @@ export class Game {
     }
 
     private setupEventListeners(): void {
+        // Globaler Click-Sound für alle Mausklicks
+        document.addEventListener('mousedown', () => {
+            this.clickSound.currentTime = 0;  // Reset für schnelle Klicks
+            this.clickSound.play().catch(e => console.log('Click sound failed:', e));
+        });
+        
         // Werkzeug-Auswahl
         document.querySelectorAll('.tool-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
