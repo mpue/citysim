@@ -10,6 +10,7 @@ export class Game {
     private simulation: SimulationEngine;
     private currentTool: ToolType;
     private selectedTile: Position | null;
+    private selectedGridPos: Position | null;  // Tatsächlich ausgewähltes Tile
     private stats: GameStats;
     private simulationInterval: number | null;
     private isDragging: boolean;
@@ -51,6 +52,7 @@ export class Game {
         this.simulation = new SimulationEngine(this.cityMap);
         this.currentTool = 'residential';
         this.selectedTile = null;
+        this.selectedGridPos = null;
         this.simulationInterval = null;
         this.isDragging = false;
         this.dragStartPos = null;
@@ -227,8 +229,14 @@ export class Game {
                 return;
             }
             
-            // Linke Maustaste = Bauen
+            // Linke Maustaste = Bauen oder Auswählen
             if (e.button === 0 && !this.isPanning) {
+                // Select-Modus: Tile auswählen
+                if (this.currentTool === 'select') {
+                    this.selectTileAt(pos.x, pos.y);
+                    return;
+                }
+                
                 this.isDragging = true;
                 this.dragStartPos = pos;
                 this.dragEndPos = pos;
@@ -539,9 +547,26 @@ export class Game {
             'park': 'Park',
             'hospital': 'Krankenhaus',
             'police': 'Polizeistation',
-            'bulldozer': 'Abriss'
+            'bulldozer': 'Abriss',
+            'select': 'Auswählen'
         };
         return names[tool] ?? tool;
+    }
+
+    private getTileTypeName(type: TileType): string {
+        const names: Record<TileType, string> = {
+            [TileType.EMPTY]: 'Leer',
+            [TileType.RESIDENTIAL]: 'Wohngebiet',
+            [TileType.COMMERCIAL]: 'Gewerbe',
+            [TileType.INDUSTRIAL]: 'Industrie',
+            [TileType.ROAD]: 'Straße',
+            [TileType.POWER_PLANT]: 'Kraftwerk',
+            [TileType.POWER_LINE]: 'Stromleitung',
+            [TileType.PARK]: 'Park',
+            [TileType.HOSPITAL]: 'Krankenhaus',
+            [TileType.POLICE]: 'Polizeistation'
+        };
+        return names[type] ?? 'Unbekannt';
     }
 
     private showInfo(message: string): void {
@@ -549,6 +574,86 @@ export class Game {
         if (infoElement) {
             infoElement.textContent = message;
         }
+    }
+
+    private selectTileAt(x: number, y: number): void {
+        if (!this.cityMap.isValidPosition(x, y)) return;
+        
+        this.selectedGridPos = { x, y };
+        this.updatePropertyPanel();
+    }
+
+    private updatePropertyPanel(): void {
+        const panel = document.getElementById('property-content');
+        if (!panel) return;
+
+        if (!this.selectedGridPos) {
+            panel.innerHTML = '<p class="property-hint">Klicke auf ein Gebäude um Details zu sehen</p>';
+            return;
+        }
+
+        const tile = this.cityMap.getTile(this.selectedGridPos.x, this.selectedGridPos.y);
+        if (!tile) {
+            panel.innerHTML = '<p class="property-hint">Ungültige Position</p>';
+            return;
+        }
+
+        if (tile.type === TileType.EMPTY) {
+            panel.innerHTML = '<p class="property-hint">Leere Fläche</p>';
+            return;
+        }
+
+        // Gebäude-Eigenschaften anzeigen
+        let html = `<div class="property-title">${this.getTileTypeName(tile.type)}</div>`;
+        
+        html += `<div class="property-item">
+            <span class="property-label">Position</span>
+            <span class="property-value">X: ${this.selectedGridPos.x}, Y: ${this.selectedGridPos.y}</span>
+        </div>`;
+
+        html += `<div class="property-item">
+            <span class="property-label">Stromversorgung</span>
+            <span class="property-value">${tile.powered ? '✓ Ja' : '✗ Nein'}</span>
+        </div>`;
+
+        if (tile.type === TileType.RESIDENTIAL || 
+            tile.type === TileType.COMMERCIAL || 
+            tile.type === TileType.INDUSTRIAL) {
+            html += `<div class="property-item">
+                <span class="property-label">Entwicklung</span>
+                <span class="property-value">Level ${tile.development}/3</span>
+            </div>`;
+        }
+
+        if (tile.type === TileType.RESIDENTIAL) {
+            html += `<div class="property-item">
+                <span class="property-label">Bevölkerung</span>
+                <span class="property-value">${tile.population}</span>
+            </div>`;
+        }
+
+        if (tile.type === TileType.ROAD) {
+            html += `<div class="property-item">
+                <span class="property-label">Verkehr</span>
+                <span class="property-value">${tile.traffic}%</span>
+            </div>`;
+
+            if (tile.trafficLight) {
+                html += `<div class="property-item">
+                    <span class="property-label">Ampel</span>
+                    <span class="property-value">Kreuzung</span>
+                </div>`;
+            }
+        }
+
+        if (tile.powerLine) {
+            html += `<div class="property-item">
+                <span class="property-label">Stromleitung</span>
+                <span class="property-value">✓ Ja</span>
+            </div>`;
+        }
+
+        panel.innerHTML = html;
     }
 
     private startSimulation(): void {
@@ -784,7 +889,7 @@ export class Game {
                 }
                 break;
             case TileType.PARK:
-                this.renderer.drawPark(x, y);
+                this.renderer.drawPark(x, y, tile.variant);
                 break;
             case TileType.HOSPITAL:
                 this.renderer.drawHospital(x, y, tile.powered);

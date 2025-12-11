@@ -18,20 +18,20 @@ body {
 }
 
 #container {
-    background: rgba(26, 26, 46, 0.95);
+    background: rgba(80, 80, 80, 0.95);
     border: none;
     border-radius: 0;
     padding: 0;
     box-shadow: none;
     backdrop-filter: none;
     display: grid;
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 200px 1fr 250px;
     grid-template-rows: auto 1fr auto auto;
     grid-template-areas: 
-        "header header"
-        "sidebar game"
-        "toolbar toolbar"
-        "info info";
+        "header header header"
+        "sidebar game property"
+        "toolbar toolbar toolbar"
+        "info info info";
     height: 100vh;
     width: 100vw;
 }
@@ -63,10 +63,73 @@ body {
     font-weight: 700;
     letter-spacing: 1.5px;
     margin-bottom: 20px;
-    background: linear-gradient(135deg, #4a90e2 0%, #e94560 100%);
+    background: linear-gradient(135deg, #5a5a5a 0%, #e94560 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+#property-panel {
+    grid-area: property;
+    background: linear-gradient(135deg, rgba(22, 33, 62, 0.9) 0%, rgba(26, 26, 46, 0.9) 100%);
+    border-left: 2px solid rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    color: #e0e0e0;
+    overflow-y: auto;
+}
+
+#property-panel h3 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #5a5a5a 0%, #e94560 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+#property-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.property-hint {
+    color: #b0b0b0;
+    font-size: 12px;
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
+.property-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 12px;
+}
+
+.property-label {
+    color: #b0b0b0;
+    font-weight: 500;
+}
+
+.property-value {
+    color: #7a7a7a;
+    font-weight: 600;
+}
+
+.property-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #e94560;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 #happiness-container {
@@ -147,7 +210,7 @@ body {
     font-size: 24px;
     font-weight: 700;
     letter-spacing: 2px;
-    background: linear-gradient(135deg, #4a90e2 0%, #e94560 100%);
+    background: linear-gradient(135deg, #5a5a5a 0%, #e94560 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -198,7 +261,7 @@ body {
     width: 100%;
     max-width: 400px;
     height: 6px;
-    background: linear-gradient(90deg, #4a90e2 0%, #e94560 100%);
+    background: linear-gradient(90deg, #5a5a5a 0%, #e94560 100%);
     border-radius: 3px;
     outline: none;
     -webkit-appearance: none;
@@ -327,14 +390,14 @@ body {
 }
 
 .tool-btn:hover {
-    background: linear-gradient(135deg, rgba(74, 144, 226, 0.6) 0%, rgba(52, 152, 219, 0.6) 100%);
+    background: linear-gradient(135deg, rgba(90, 90, 90, 0.6) 0%, rgba(122, 122, 122, 0.6) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
-    border-color: rgba(74, 144, 226, 0.6);
+    box-shadow: 0 4px 12px rgba(90, 90, 90, 0.4);
+    border-color: rgba(90, 90, 90, 0.6);
 }
 
 .tool-btn.active {
-    background: linear-gradient(135deg, #4a90e2 0%, #e94560 100%);
+    background: linear-gradient(135deg, #5a5a5a 0%, #e94560 100%);
     color: #ffffff;
     border-color: #00d4ff;
     box-shadow: 0 0 20px rgba(0, 212, 255, 0.6),

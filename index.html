@@ -53,7 +53,15 @@
             <canvas id="gameCanvas"></canvas>
         </div>
         
+        <div id="property-panel">
+            <h3>EIGENSCHAFTEN</h3>
+            <div id="property-content">
+                <p class="property-hint">Klicke auf ein Gebäude um Details zu sehen</p>
+            </div>
+        </div>
+        
         <div id="toolbar">
+            <button class="tool-btn" data-tool="select">AUSWÄHLEN</button>
             <button class="tool-btn" data-tool="bulldozer">ABREISSEN</button>
             <button class="tool-btn active" data-tool="residential">WOHNGEBIET<br>$100</button>
             <button class="tool-btn" data-tool="commercial">GEWERBE<br>$100</button>
@@ -71,6 +79,6 @@
         </div>
     </div>
     
-    <script type="module" src="dist/main.js?v=2"></script>
+    <script type="module" src="dist/main.js?v=4"></script>
 </body>
 </html>

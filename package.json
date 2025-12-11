@@ -8,10 +8,18 @@
     "watch": "tsc --watch",
     "dev": "tsc --watch"
   },
-  "keywords": ["simcity", "simulation", "amber", "hercules"],
+  "keywords": [
+    "simcity",
+    "simulation",
+    "amber",
+    "hercules"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "TypeScript": "npm:typescript@^5.9.3"
   }
 }

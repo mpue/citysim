@@ -6,6 +6,7 @@ export class AmberRenderer {
     private houseIcons: HTMLImageElement[] = [];
     private commercialIcons: HTMLImageElement[] = [];
     private industrialIcons: HTMLImageElement[] = [];
+    private treeIcons: HTMLImageElement[] = [];
     private hospitalIcon: HTMLImageElement | null = null;
     private policeIcon: HTMLImageElement | null = null;
     private powerplantIcon: HTMLImageElement | null = null;
@@ -20,10 +21,10 @@ export class AmberRenderer {
     private readonly RES_DARK = '#b83350';
     private readonly RES_LIGHT = '#ff6b88';
     
-    // Gewerbe - kühle Blautöne
-    private readonly COM_BASE = '#4a90e2';
-    private readonly COM_DARK = '#3470b8';
-    private readonly COM_LIGHT = '#6baef5';
+    // Gewerbe - Grau- und Schwarztöne
+    private readonly COM_BASE = '#5a5a5a';
+    private readonly COM_DARK = '#2a2a2a';
+    private readonly COM_LIGHT = '#7a7a7a';
     
     // Industrie - Grautöne
     private readonly IND_BASE = '#7f8c8d';
@@ -83,6 +84,13 @@ export class AmberRenderer {
             this.industrialIcons.push(img);
         }
         
+        // Lade Baum-Icons
+        for (let i = 1; i <= 4; i++) {
+            const img = new Image();
+            img.src = `icons/tree_${i}.png`;
+            this.treeIcons.push(img);
+        }
+        
         // Lade Hospital Icon
         this.hospitalIcon = new Image();
         this.hospitalIcon.src = 'icons/hospital.png';
@@ -100,6 +108,7 @@ export class AmberRenderer {
             ...this.houseIcons, 
             ...this.commercialIcons, 
             ...this.industrialIcons,
+            ...this.treeIcons,
             this.hospitalIcon,
             this.policeIcon,
             this.powerplantIcon
@@ -505,18 +514,15 @@ export class AmberRenderer {
         }
     }
 
-    public drawPark(x: number, y: number): void {
+    public drawPark(x: number, y: number, variant: number): void {
         // Grüne Parkfläche
         this.ctx.fillStyle = this.PARK_BASE;
         this.ctx.fillRect(x + 2, y + 2, this.TILE_SIZE - 4, this.TILE_SIZE - 4);
         
-        // Bäume
-        this.ctx.fillStyle = this.PARK_DARK;
-        for (let i = 0; i < 3; i++) {
-            const treeX = x + 4 + i * 6;
-            const treeY = y + 4 + (i % 2) * 8;
-            this.ctx.fillRect(treeX, treeY, 3, 3);
-            this.ctx.fillRect(treeX + 1, treeY - 2, 1, 2);
+        // Baum-Icon anzeigen (zufällige Variante)
+        if (this.iconsLoaded && this.treeIcons.length > 0) {
+            const treeIcon = this.treeIcons[variant % 4];
+            this.ctx.drawImage(treeIcon, x, y, this.TILE_SIZE, this.TILE_SIZE);
         }
     }
 

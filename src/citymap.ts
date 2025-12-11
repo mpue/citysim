@@ -164,6 +164,9 @@ export class CityMap {
                     tile.powered = true;
                     this.powerGrid.add(nKey);
                     queue.push(n);
+                } else if (tile.type === TileType.PARK) {
+                    // Parks brauchen keinen Strom, werden aber als "powered" markiert
+                    tile.powered = true;
                 }
             }
         }

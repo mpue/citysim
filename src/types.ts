@@ -61,7 +61,7 @@ export interface GameStats {
     happiness: number;  // Bürgerzufriedenheit (0-100)
 }
 
-export type ToolType = 'bulldozer' | 'residential' | 'commercial' | 'industrial' | 
+export type ToolType = 'select' | 'bulldozer' | 'residential' | 'commercial' | 'industrial' | 
                        'road' | 'power' | 'powerline' | 'park' | 'hospital' | 'police';
 
 export const TILE_COSTS: Record<TileType, number> = {
