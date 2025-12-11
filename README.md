@@ -1,10 +1,9 @@
-# CitySim - Hercules Amber Edition
+# SlimCity
 
 Eine Städtebausimulation im Stil des ersten SimCity für den Browser, mit minimalistischer Grafik.
 
 ## Features
 
-- **Retro Bernstein-Optik**: Authentische Monochrom-Darstellung in Orange/Bernstein
 - **SimCity-Klassik Gameplay**: Baue Wohngebiete, Gewerbe, Industrie
 - **Stromversorgung**: Kraftwerke und Stromleitungen
 - **Entwicklung**: Gebäude entwickeln sich basierend auf Infrastruktur
