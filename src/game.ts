@@ -29,8 +29,8 @@ export class Game {
     private currentTrack: number;
     private clickSound: HTMLAudioElement;
 
-    private readonly MAP_WIDTH = 45;
-    private readonly MAP_HEIGHT = 30;
+    private readonly MAP_WIDTH = 64;
+    private readonly MAP_HEIGHT = 64;
     private readonly DEFAULT_SIMULATION_SPEED = 2000; // ms
     private readonly MIN_ZOOM = 0.5;
     private readonly MAX_ZOOM = 3.0;
@@ -171,6 +171,10 @@ export class Game {
                 for (let x = 0; x < this.MAP_WIDTH; x++) {
                     if (saveData.map[y] && saveData.map[y][x]) {
                         Object.assign(map[y][x], saveData.map[y][x]);
+                        // Sicherstellen, dass variant für alte Saves aktualisiert wird
+                        if (map[y][x].variant === undefined || map[y][x].variant > 4) {
+                            map[y][x].variant = Math.floor(Math.random() * 5);
+                        }
                     }
                 }
             }
@@ -204,6 +208,10 @@ export class Game {
                 for (let x = 0; x < this.MAP_WIDTH; x++) {
                     if (saveData.map[y] && saveData.map[y][x]) {
                         Object.assign(map[y][x], saveData.map[y][x]);
+                        // Sicherstellen, dass variant für alte Saves aktualisiert wird
+                        if (map[y][x].variant === undefined || map[y][x].variant > 4) {
+                            map[y][x].variant = Math.floor(Math.random() * 5);
+                        }
                     }
                 }
             }
@@ -929,14 +937,25 @@ export class Game {
                 this.renderer.drawIndustrial(x, y, tile.development, tile.powered, tile.variant || 0);
                 break;
             case TileType.ROAD:
-                const roadConnections = this.getRoadConnections(gridX, gridY);
-                const roadVehicles = this.vehicles.filter(v => v.tileX === gridX && v.tileY === gridY);
-                this.renderer.drawRoad(x, y, roadConnections.north, roadConnections.east, 
-                                      roadConnections.south, roadConnections.west, tile.traffic, roadVehicles);
+                // Prüfe ob Teil eines 2x2 Kreisverkehrs
+                const roundaboutTopLeft = this.getRoundaboutTopLeft(gridX, gridY);
                 
-                // Ampel zeichnen falls vorhanden
-                if (tile.trafficLight) {
-                    this.renderer.drawTrafficLight(x, y, tile.trafficLight);
+                if (roundaboutTopLeft) {
+                    // Nur die obere linke Ecke zeichnet den Kreisverkehr
+                    if (gridX === roundaboutTopLeft.x && gridY === roundaboutTopLeft.y) {
+                        this.renderer.drawRoundabout(x, y);
+                    }
+                    // Andere Tiles des Kreisverkehrs werden übersprungen
+                } else {
+                    const roadConnections = this.getRoadConnections(gridX, gridY);
+                    const roadVehicles = this.vehicles.filter(v => v.tileX === gridX && v.tileY === gridY);
+                    this.renderer.drawRoad(x, y, roadConnections.north, roadConnections.east, 
+                                          roadConnections.south, roadConnections.west, tile.traffic, roadVehicles);
+                    
+                    // Ampel zeichnen falls vorhanden
+                    if (tile.trafficLight) {
+                        this.renderer.drawTrafficLight(x, y, tile.trafficLight);
+                    }
                 }
                 break;
             case TileType.POWER_PLANT:
@@ -968,7 +987,7 @@ export class Game {
 
         // Kein-Strom-Indikator
         if (!tile.powered && tile.type !== TileType.EMPTY &&
-            tile.type !== TileType.ROAD && !tile.powerLine) {
+            tile.type !== TileType.ROAD && tile.type !== TileType.PARK && !tile.powerLine) {
             this.renderer.drawNoPowerIndicator(x, y);
         }
     }
@@ -1312,6 +1331,43 @@ export class Game {
         const hasWest = x > 0 && (map[y][x - 1].powerLine || map[y][x - 1].type === TileType.POWER_PLANT);
         
         return { north: hasNorth, east: hasEast, south: hasSouth, west: hasWest };
+    }
+
+    private getRoundaboutTopLeft(x: number, y: number): { x: number, y: number } | null {
+        // Prüfe ob dieses Tile Teil eines 2x2 Straßenblocks ist
+        // und gebe die obere linke Ecke zurück
+        const tile = this.cityMap.getTile(x, y);
+        if (!tile || tile.type !== TileType.ROAD) return null;
+
+        // Prüfe alle möglichen 2x2 Positionen wo dieses Tile Teil sein könnte
+        const positions = [
+            { x: x, y: y },         // Oben links
+            { x: x - 1, y: y },     // Oben rechts (wir sind rechts)
+            { x: x, y: y - 1 },     // Unten links (wir sind unten)
+            { x: x - 1, y: y - 1 }  // Unten rechts (wir sind unten rechts)
+        ];
+
+        for (const pos of positions) {
+            if (pos.x < 0 || pos.y < 0 || 
+                pos.x >= this.MAP_WIDTH - 1 || pos.y >= this.MAP_HEIGHT - 1) {
+                continue;
+            }
+
+            // Prüfe ob 2x2 Block ab dieser Position komplett aus Straßen besteht
+            const tl = this.cityMap.getTile(pos.x, pos.y);
+            const tr = this.cityMap.getTile(pos.x + 1, pos.y);
+            const bl = this.cityMap.getTile(pos.x, pos.y + 1);
+            const br = this.cityMap.getTile(pos.x + 1, pos.y + 1);
+
+            if (tl?.type === TileType.ROAD &&
+                tr?.type === TileType.ROAD &&
+                bl?.type === TileType.ROAD &&
+                br?.type === TileType.ROAD) {
+                return { x: pos.x, y: pos.y };
+            }
+        }
+
+        return null;
     }
 
     private startGameLoop(): void {

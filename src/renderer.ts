@@ -39,7 +39,7 @@ export class AmberRenderer {
     private readonly POWER_GLOW = '#00ffff';
     
     // Parks - Grüntöne
-    private readonly PARK_BASE = '#27ae60';
+    private readonly PARK_BASE = '#27ae6000';
     private readonly PARK_DARK = '#1e8449';
     private readonly PARK_LIGHT = '#2ecc71';
     
@@ -87,10 +87,14 @@ export class AmberRenderer {
         // Lade Baum-Icons
         for (let i = 1; i <= 4; i++) {
             const img = new Image();
-            img.src = `icons/tree_${i}.png`;
+            img.src = `icons/tree_${i}.png`;            
             this.treeIcons.push(img);
         }
-        
+
+        const img = new Image();
+        img.src = `icons/grass_1.png`;            
+        this.treeIcons.push(img);
+
         // Lade Hospital Icon
         this.hospitalIcon = new Image();
         this.hospitalIcon.src = 'icons/hospital.png';
@@ -490,6 +494,66 @@ export class AmberRenderer {
         }
     }
 
+    public drawRoundabout(x: number, y: number): void {
+        const size = this.TILE_SIZE * 2;
+        const center = size / 2;
+        const outerRadius = size * 0.45;
+        const innerRadius = size * 0.25;
+        
+        // Straßenhintergrund (2x2 Tiles)
+        this.ctx.fillStyle = this.ROAD_COLOR;
+        this.ctx.fillRect(x, y, size, size);
+        
+        // Äußerer Kreis (Fahrbahn)
+        this.ctx.fillStyle = this.ROAD_COLOR;
+        this.ctx.beginPath();
+        this.ctx.arc(x + center, y + center, outerRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Innerer Kreis (Mittelinsel)
+        this.ctx.fillStyle = '#27ae60'; // Grün für die Insel
+        this.ctx.beginPath();
+        this.ctx.arc(x + center, y + center, innerRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Gelbe Markierung am äußeren Rand
+        this.ctx.strokeStyle = this.ROAD_LINE;
+        this.ctx.lineWidth = 1;
+        this.ctx.setLineDash([3, 3]);
+        this.ctx.beginPath();
+        this.ctx.arc(x + center, y + center, outerRadius - 1, 0, Math.PI * 2);
+        this.ctx.stroke();
+        
+        // Gelbe Markierung am inneren Rand
+        this.ctx.beginPath();
+        this.ctx.arc(x + center, y + center, innerRadius + 1, 0, Math.PI * 2);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+        
+        // Pfeile für Fahrtrichtung (gegen Uhrzeigersinn)
+        this.ctx.fillStyle = '#ffffff';
+        const arrowPositions = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+        const arrowRadius = (outerRadius + innerRadius) / 2;
+        
+        arrowPositions.forEach(angle => {
+            const arrowX = x + center + Math.cos(angle) * arrowRadius;
+            const arrowY = y + center + Math.sin(angle) * arrowRadius;
+            
+            // Kleiner Pfeil
+            this.ctx.save();
+            this.ctx.translate(arrowX, arrowY);
+            this.ctx.rotate(angle + Math.PI / 2); // Richtung gegen Uhrzeigersinn
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, -3);
+            this.ctx.lineTo(2, 0);
+            this.ctx.lineTo(0, 3);
+            this.ctx.fill();
+            
+            this.ctx.restore();
+        });
+    }
+
     public drawTrafficLight(x: number, y: number, state: number): void {
         const center = this.TILE_SIZE / 2;
         const radius = 2;
@@ -602,7 +666,7 @@ export class AmberRenderer {
         
         // Baum-Icon anzeigen (zufällige Variante)
         if (this.iconsLoaded && this.treeIcons.length > 0) {
-            const treeIcon = this.treeIcons[variant % 4];
+            const treeIcon = this.treeIcons[variant % 5];
             this.ctx.drawImage(treeIcon, x, y, this.TILE_SIZE, this.TILE_SIZE);
         }
     }

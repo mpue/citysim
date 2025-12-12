@@ -23,7 +23,7 @@ export class CityMap {
                     powered: false,
                     development: 0,
                     population: 0,
-                    variant: Math.floor(Math.random() * 4),  // 4 verschiedene Varianten
+                    variant: Math.floor(Math.random() * 5),  // 5 verschiedene Varianten (tree_1 bis tree_4 + grass_1)
                     powerLine: false,  // Keine Stromleitung zu Beginn
                     traffic: 0  // Kein Verkehr zu Beginn
                 };
@@ -122,6 +122,9 @@ export class CityMap {
                     powerSources.push({ x, y });
                     tile.powered = true;
                     this.powerGrid.add(`${x},${y}`);
+                } else if (tile.type === TileType.PARK) {
+                    // Parks benötigen keinen Strom
+                    tile.powered = true;
                 }
             }
         }
@@ -164,9 +167,6 @@ export class CityMap {
                     tile.powered = true;
                     this.powerGrid.add(nKey);
                     queue.push(n);
-                } else if (tile.type === TileType.PARK) {
-                    // Parks brauchen keinen Strom, werden aber als "powered" markiert
-                    tile.powered = true;
                 }
             }
         }
