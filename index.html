@@ -35,7 +35,9 @@
                 <div id="stats">
                     <span>BEVÖLKERUNG: <span id="population">0</span></span>
                     <span>GELD: $<span id="money">20000</span></span>
+                    <span>SCHULDEN: $<span id="loan">0</span></span>
                     <span>JAHR: <span id="year">1900</span></span>
+                    <button id="loan-btn" class="control-btn">KREDIT</button>
                 </div>
                 <div id="speed-control">
                 <label for="speed-slider">GESCHWINDIGKEIT: <span id="speed-display">Normal</span></label>
@@ -45,6 +47,10 @@
                     <button id="load-btn" class="control-btn">LADEN</button>
                 </div>
             </div>
+            </div>
+            <div id="population-graph-container">
+                <div class="graph-title">BEVÖLKERUNG (10 JAHRE)</div>
+                <canvas id="population-graph" width="300" height="100"></canvas>
             </div>
         </div>
         
@@ -66,6 +72,14 @@
                     <span class="service-icon">👮</span>
                     <span>Polizeistationen: <span id="police-count">0</span></span>
                 </div>
+                <div class="service-stat">
+                    <span class="service-icon">🏫</span>
+                    <span>Schulen: <span id="school-count">0</span></span>
+                </div>
+                <div class="service-stat">
+                    <span class="service-icon">📚</span>
+                    <span>Bibliotheken: <span id="library-count">0</span></span>
+                </div>
             </div>
         </div>
         
@@ -81,24 +95,82 @@
         </div>
         
         <div id="toolbar">
-            <button class="tool-btn" data-tool="select"><img src="icons/commands/select.png" alt="Auswählen" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="bulldozer"><img src="icons/commands/destroy.png" alt="Abreissen" width="64" height="64"></button>
-            <button class="tool-btn active" data-tool="residential"><img src="icons/commands/residential.png" alt="Wohngebiet" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="commercial"><img src="icons/commands/commercial.png" alt="Gewerbe" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="industrial"><img src="icons/commands/induatrial.png" alt="Industrie" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="road"><img src="icons/commands/road.png" alt="Strasse" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="power"><img src="icons/commands/powerplant.png" alt="Kraftwerk" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="powerline"><img src="icons/commands/powerline.png" alt="Stromleitung" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="park"><img src="icons/commands/park.png" alt="Park" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="hospital"><img src="icons/commands/hospital.png" alt="Krankenhaus" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="police"><img src="icons/commands/police.png" alt="Polizei" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="select" title="Auswählen"><img src="icons/commands/select.png" alt="Auswählen" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="bulldozer" title="Abreissen - $10"><img src="icons/commands/destroy.png" alt="Abreissen" width="64" height="64"></button>
+            <button class="tool-btn active" data-tool="residential" title="Wohngebiet - $100"><img src="icons/commands/residential.png" alt="Wohngebiet" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="commercial" title="Gewerbe - $100"><img src="icons/commands/commercial.png" alt="Gewerbe" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="industrial" title="Industrie - $100"><img src="icons/commands/induatrial.png" alt="Industrie" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="road" title="Straße - $10"><img src="icons/commands/road.png" alt="Strasse" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="power" title="Kraftwerk - $3000"><img src="icons/commands/powerplant.png" alt="Kraftwerk" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="powerline" title="Stromleitung - $5"><img src="icons/commands/powerline.png" alt="Stromleitung" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="park" title="Park - $20"><img src="icons/commands/park.png" alt="Park" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="hospital" title="Krankenhaus - $500"><img src="icons/commands/hospital.png" alt="Krankenhaus" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="police" title="Polizei - $500"><img src="icons/commands/police.png" alt="Polizei" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="school" title="Schule - $300"><img src="icons/commands/school.png" alt="Schule" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="library" title="Bibliothek - $400"><img src="icons/commands/library.png" alt="Bibliothek" width="64" height="64"></button>
         </div>
         
         <div id="info">
             <div id="tile-info">Wähle ein Werkzeug und klicke auf die Karte um deine Stadt zu bauen</div>
         </div>
     </div>
-    
-    <script type="module" src="dist/main.js?v=24"></script>
+        <!-- Bank Dialog -->
+    <div id="bank-dialog" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog bank-dialog">
+            <div class="modal-header">
+                <h2>🏦 BANK VON CITYSIM</h2>
+                <button class="modal-close" id="bank-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="bank-info">
+                    <div class="info-row">
+                        <span class="info-label">Aktueller Kredit:</span>
+                        <span class="info-value" id="bank-current-loan">$0</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Zinssatz:</span>
+                        <span class="info-value" id="bank-interest-rate">5.0% / Jahr</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Monatliche Zinsen:</span>
+                        <span class="info-value" id="bank-monthly-interest">$0</span>
+                    </div>
+                    <div class="info-row highlight">
+                        <span class="info-label">Verfügbar zum Leihen:</span>
+                        <span class="info-value" id="bank-available">$50,000</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Ihr Guthaben:</span>
+                        <span class="info-value" id="bank-current-money">$20,000</span>
+                    </div>
+                </div>
+                
+                <div class="bank-actions">
+                    <div class="action-section">
+                        <h3>Kredit aufnehmen</h3>
+                        <div class="input-group">
+                            <input type="number" id="loan-amount" placeholder="Betrag eingeben" min="0" step="1000">
+                            <button class="action-btn loan-btn" id="take-loan-btn">Leihen</button>
+                        </div>
+                        <div class="quick-buttons">
+                            <button class="quick-btn" data-amount="5000">$5,000</button>
+                            <button class="quick-btn" data-amount="10000">$10,000</button>
+                            <button class="quick-btn" data-amount="25000">$25,000</button>
+                        </div>
+                    </div>
+                    
+                    <div class="action-section" id="payback-section">
+                        <h3>Kredit zurückzahlen</h3>
+                        <div class="input-group">
+                            <input type="number" id="payback-amount" placeholder="Betrag eingeben" min="0" step="1000">
+                            <button class="action-btn payback-btn" id="payback-loan-btn">Zurückzahlen</button>
+                        </div>
+                        <button class="quick-btn full-payback" id="payback-full-btn">Vollständig tilgen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        <script type="module" src="dist/main.js?v=24"></script>
 </body>
 </html>

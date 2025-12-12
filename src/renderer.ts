@@ -9,6 +9,8 @@ export class AmberRenderer {
     private treeIcons: HTMLImageElement[] = [];
     private hospitalIcon: HTMLImageElement | null = null;
     private policeIcon: HTMLImageElement | null = null;
+    private schoolIcon: HTMLImageElement | null = null;
+    private libraryIcon: HTMLImageElement | null = null;
     private powerplantIcon: HTMLImageElement | null = null;
     private iconsLoaded: boolean = false;
     
@@ -103,6 +105,14 @@ export class AmberRenderer {
         this.policeIcon = new Image();
         this.policeIcon.src = 'icons/police.png';
         
+        // Lade School Icon
+        this.schoolIcon = new Image();
+        this.schoolIcon.src = 'icons/school.png';
+        
+        // Lade Library Icon
+        this.libraryIcon = new Image();
+        this.libraryIcon.src = 'icons/library.png';
+        
         // Lade Powerplant Icon
         this.powerplantIcon = new Image();
         this.powerplantIcon.src = 'icons/powerplant.png';
@@ -115,6 +125,8 @@ export class AmberRenderer {
             ...this.treeIcons,
             this.hospitalIcon,
             this.policeIcon,
+            this.schoolIcon,
+            this.libraryIcon,
             this.powerplantIcon
         ];
         let loadedCount = 0;
@@ -358,6 +370,40 @@ export class AmberRenderer {
         } else {
             // Fallback: blaues Schild
             this.ctx.fillStyle = powered ? '#3498db' : '#2980b9';
+            this.ctx.fillRect(x + 4, y + 4, 16, 16);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillRect(x + 8, y + 8, 8, 8);
+        }
+    }
+
+    public drawSchool(x: number, y: number, powered: boolean): void {
+        if (this.schoolIcon && this.schoolIcon.complete) {
+            this.ctx.drawImage(this.schoolIcon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+            
+            if (!powered) {
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+            }
+        } else {
+            // Fallback: gelbes Gebäude
+            this.ctx.fillStyle = powered ? '#f39c12' : '#d68910';
+            this.ctx.fillRect(x + 4, y + 4, 16, 16);
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillRect(x + 8, y + 8, 8, 8);
+        }
+    }
+
+    public drawLibrary(x: number, y: number, powered: boolean): void {
+        if (this.libraryIcon && this.libraryIcon.complete) {
+            this.ctx.drawImage(this.libraryIcon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+            
+            if (!powered) {
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+            }
+        } else {
+            // Fallback: grünes Gebäude
+            this.ctx.fillStyle = powered ? '#27ae60' : '#1e8449';
             this.ctx.fillRect(x + 4, y + 4, 16, 16);
             this.ctx.fillStyle = '#ffffff';
             this.ctx.fillRect(x + 8, y + 8, 8, 8);

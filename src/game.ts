@@ -28,12 +28,16 @@ export class Game {
     private backgroundMusic: HTMLAudioElement[];
     private currentTrack: number;
     private clickSound: HTMLAudioElement;
+    private populationHistory: Array<{year: number, month: number, population: number}>;
+    private populationGraphCanvas: HTMLCanvasElement | null;
+    private populationGraphCtx: CanvasRenderingContext2D | null;
 
     private readonly MAP_WIDTH = 64;
     private readonly MAP_HEIGHT = 64;
     private readonly DEFAULT_SIMULATION_SPEED = 2000; // ms
     private readonly MIN_ZOOM = 0.5;
     private readonly MAX_ZOOM = 3.0;
+    private readonly GRAPH_HISTORY_YEARS = 10;
 
     constructor(canvasId: string) {
         const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -70,18 +74,25 @@ export class Game {
         this.currentTrack = 0;
         this.clickSound = new Audio('fx/click.wav');
         this.clickSound.volume = 0.5;  // 50% Lautstärke
+        this.populationHistory = [];
+        this.populationGraphCanvas = document.getElementById('population-graph') as HTMLCanvasElement;
+        this.populationGraphCtx = this.populationGraphCanvas?.getContext('2d') || null;
 
         this.stats = {
             money: 20000,
             population: 0,
             year: 1900,
             month: 0,
-            happiness: 100
+            happiness: 100,
+            loan: 0,
+            loanInterestRate: 5.0
         };
 
         this.setupEventListeners();
         this.setupSaveLoadButtons();
         this.setupBackgroundMusic();
+        this.updateUI();
+        this.drawPopulationGraph(); // Initial graph zeichnen
         this.startGameLoop();
         this.startSimulation();
     }
@@ -127,12 +138,187 @@ export class Game {
     private setupSaveLoadButtons(): void {
         const saveBtn = document.getElementById('save-btn');
         const loadBtn = document.getElementById('load-btn');
+        const loanBtn = document.getElementById('loan-btn');
         
         if (saveBtn) {
             saveBtn.addEventListener('click', () => this.saveGame());
         }
         if (loadBtn) {
             loadBtn.addEventListener('click', () => this.loadGame());
+        }
+        if (loanBtn) {
+            loanBtn.addEventListener('click', () => this.openLoanDialog());
+        }
+        
+        // Bank Dialog Event Listeners
+        this.setupBankDialog();
+    }
+    
+    private setupBankDialog(): void {
+        const dialog = document.getElementById('bank-dialog');
+        const closeBtn = document.getElementById('bank-close');
+        const takeLoanBtn = document.getElementById('take-loan-btn');
+        const paybackBtn = document.getElementById('payback-loan-btn');
+        const paybackFullBtn = document.getElementById('payback-full-btn');
+        const loanInput = document.getElementById('loan-amount') as HTMLInputElement;
+        const paybackInput = document.getElementById('payback-amount') as HTMLInputElement;
+        
+        // Close Dialog
+        if (closeBtn && dialog) {
+            closeBtn.addEventListener('click', () => {
+                dialog.style.display = 'none';
+            });
+            
+            // Close on overlay click
+            dialog.addEventListener('click', (e) => {
+                if (e.target === dialog) {
+                    dialog.style.display = 'none';
+                }
+            });
+        }
+        
+        // Quick amount buttons
+        document.querySelectorAll('.quick-btn[data-amount]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const amount = (btn as HTMLElement).dataset.amount;
+                if (loanInput && amount) {
+                    loanInput.value = amount;
+                }
+            });
+        });
+        
+        // Take Loan
+        if (takeLoanBtn && loanInput) {
+            takeLoanBtn.addEventListener('click', () => {
+                this.takeLoan(parseInt(loanInput.value) || 0);
+                loanInput.value = '';
+            });
+            
+            loanInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.takeLoan(parseInt(loanInput.value) || 0);
+                    loanInput.value = '';
+                }
+            });
+        }
+        
+        // Payback Loan
+        if (paybackBtn && paybackInput) {
+            paybackBtn.addEventListener('click', () => {
+                this.paybackLoan(parseInt(paybackInput.value) || 0);
+                paybackInput.value = '';
+            });
+            
+            paybackInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.paybackLoan(parseInt(paybackInput.value) || 0);
+                    paybackInput.value = '';
+                }
+            });
+        }
+        
+        // Payback Full
+        if (paybackFullBtn) {
+            paybackFullBtn.addEventListener('click', () => {
+                this.paybackLoan(this.stats.loan);
+            });
+        }
+    }
+    
+    private openLoanDialog(): void {
+        const dialog = document.getElementById('bank-dialog');
+        if (!dialog) return;
+        
+        this.updateBankDialogInfo();
+        dialog.style.display = 'flex';
+    }
+    
+    private updateBankDialogInfo(): void {
+        const maxLoan = 50000;
+        const currentLoan = this.stats.loan;
+        const availableLoan = maxLoan - currentLoan;
+        const monthlyInterest = Math.floor((currentLoan * this.stats.loanInterestRate) / 100 / 12);
+        
+        const elements = {
+            currentLoan: document.getElementById('bank-current-loan'),
+            interestRate: document.getElementById('bank-interest-rate'),
+            monthlyInterest: document.getElementById('bank-monthly-interest'),
+            available: document.getElementById('bank-available'),
+            currentMoney: document.getElementById('bank-current-money')
+        };
+        
+        if (elements.currentLoan) {
+            elements.currentLoan.textContent = `$${currentLoan.toLocaleString()}`;
+            elements.currentLoan.style.color = currentLoan > 0 ? '#e74c3c' : '#2ecc71';
+        }
+        if (elements.interestRate) {
+            elements.interestRate.textContent = `${this.stats.loanInterestRate}% / Jahr`;
+        }
+        if (elements.monthlyInterest) {
+            elements.monthlyInterest.textContent = `$${monthlyInterest.toLocaleString()}`;
+            elements.monthlyInterest.style.color = monthlyInterest > 0 ? '#e74c3c' : '#2ecc71';
+        }
+        if (elements.available) {
+            elements.available.textContent = `$${availableLoan.toLocaleString()}`;
+            elements.available.style.color = availableLoan > 0 ? '#2ecc71' : '#e74c3c';
+        }
+        if (elements.currentMoney) {
+            elements.currentMoney.textContent = `$${this.stats.money.toLocaleString()}`;
+        }
+        
+        // Show/hide payback section
+        const paybackSection = document.getElementById('payback-section');
+        if (paybackSection) {
+            paybackSection.style.display = currentLoan > 0 ? 'block' : 'none';
+        }
+    }
+    
+    private takeLoan(amount: number): void {
+        if (amount <= 0) {
+            this.showInfo('Bitte geben Sie einen gültigen Betrag ein!');
+            return;
+        }
+        
+        const maxLoan = 50000;
+        const availableLoan = maxLoan - this.stats.loan;
+        
+        if (amount > availableLoan) {
+            this.showInfo(`Sie können maximal $${availableLoan.toLocaleString()} leihen!`);
+            return;
+        }
+        
+        this.stats.loan += amount;
+        this.stats.money += amount;
+        this.updateUI();
+        this.updateBankDialogInfo();
+        this.showInfo(`✓ Kredit von $${amount.toLocaleString()} aufgenommen`);
+    }
+    
+    private paybackLoan(amount: number): void {
+        if (amount <= 0) {
+            this.showInfo('Bitte geben Sie einen gültigen Betrag ein!');
+            return;
+        }
+        
+        if (amount > this.stats.money) {
+            this.showInfo(`Nicht genug Geld! Sie haben nur $${this.stats.money.toLocaleString()}`);
+            return;
+        }
+        
+        if (amount > this.stats.loan) {
+            this.showInfo(`Sie können nicht mehr zurückzahlen als Sie schulden ($${this.stats.loan.toLocaleString()})`);
+            return;
+        }
+        
+        this.stats.loan -= amount;
+        this.stats.money -= amount;
+        this.updateUI();
+        this.updateBankDialogInfo();
+        
+        if (this.stats.loan === 0) {
+            this.showInfo('🎉 Kredit vollständig zurückgezahlt! Sie sind schuldenfrei!');
+        } else {
+            this.showInfo(`✓ $${amount.toLocaleString()} zurückgezahlt. Restschuld: $${this.stats.loan.toLocaleString()}`);
         }
     }
 
@@ -144,6 +330,7 @@ export class Game {
             const saveData = {
                 map: this.cityMap.getAllTiles(),
                 stats: this.stats,
+                populationHistory: this.populationHistory,
                 timestamp: Date.now()
             };
             
@@ -182,10 +369,24 @@ export class Game {
             // Stats wiederherstellen
             this.stats = saveData.stats;
             
+            // Kompatibilität mit alten Saves (Loan-System)
+            if (this.stats.loan === undefined) {
+                this.stats.loan = 0;
+                this.stats.loanInterestRate = 5.0;
+            }
+            
+            // Population History wiederherstellen
+            if (saveData.populationHistory) {
+                this.populationHistory = saveData.populationHistory;
+            } else {
+                this.populationHistory = [];
+            }
+            
             // Power Grid neu berechnen
             this.cityMap.updatePowerGrid();
             
             this.updateUI();
+            this.drawPopulationGraph();
             this.showInfo('Spiel erfolgreich geladen!');
         } catch (e) {
             this.showInfo('Fehler beim Laden: ' + (e as Error).message);
@@ -219,10 +420,24 @@ export class Game {
             // Stats wiederherstellen
             this.stats = saveData.stats;
             
+            // Kompatibilität mit alten Saves (Loan-System)
+            if (this.stats.loan === undefined) {
+                this.stats.loan = 0;
+                this.stats.loanInterestRate = 5.0;
+            }
+            
+            // Population History wiederherstellen
+            if (saveData.populationHistory) {
+                this.populationHistory = saveData.populationHistory;
+            } else {
+                this.populationHistory = [];
+            }
+            
             // Power Grid neu berechnen
             this.cityMap.updatePowerGrid();
             
             this.updateUI();
+            this.drawPopulationGraph();
             this.showInfo('Stadt erfolgreich geladen!');
         } catch (e) {
             this.showInfo('Fehler beim Laden: ' + (e as Error).message);
@@ -599,7 +814,9 @@ export class Game {
             'powerline': TileType.POWER_LINE,
             'park': TileType.PARK,
             'hospital': TileType.HOSPITAL,
-            'police': TileType.POLICE
+            'police': TileType.POLICE,
+            'school': TileType.SCHOOL,
+            'library': TileType.LIBRARY
         };
         return mapping[tool] ?? null;
     }
@@ -615,6 +832,8 @@ export class Game {
             'park': 'Park',
             'hospital': 'Krankenhaus',
             'police': 'Polizeistation',
+            'school': 'Schule',
+            'library': 'Bibliothek',
             'bulldozer': 'Abriss',
             'select': 'Auswählen'
         };
@@ -632,7 +851,9 @@ export class Game {
             [TileType.POWER_LINE]: 'Stromleitung',
             [TileType.PARK]: 'Park',
             [TileType.HOSPITAL]: 'Krankenhaus',
-            [TileType.POLICE]: 'Polizeistation'
+            [TileType.POLICE]: 'Polizeistation',
+            [TileType.SCHOOL]: 'Schule',
+            [TileType.LIBRARY]: 'Bibliothek'
         };
         return names[type] ?? 'Unbekannt';
     }
@@ -746,9 +967,30 @@ export class Game {
             this.stats.year++;
         }
 
-        const income = this.simulation.simulate();
+        // Zufriedenheit berechnen (muss vor simulate passieren)
+        this.updateHappiness();
+        
+        // Simulation mit aktueller Zufriedenheit durchführen
+        const income = this.simulation.simulate(this.stats.happiness);
         this.stats.money += income;
+        
+        // Kredit-Zinsen berechnen und abziehen (monatlich)
+        if (this.stats.loan > 0) {
+            const monthlyInterest = Math.floor((this.stats.loan * this.stats.loanInterestRate) / 100 / 12);
+            this.stats.money -= monthlyInterest;
+            
+            if (monthlyInterest > 0) {
+                // Gelegentlich Info anzeigen über Zinszahlung
+                if (this.stats.month === 0) {
+                    this.showInfo(`Jahreszinsen: $${(monthlyInterest * 12).toLocaleString()} für Kredit von $${this.stats.loan.toLocaleString()}`);
+                }
+            }
+        }
+        
         this.stats.population = this.cityMap.calculatePopulation();
+        
+        // Bevölkerungsdaten für Graph speichern
+        this.updatePopulationHistory();
         
         // Verkehr auf Straßen berechnen
         this.updateTraffic();
@@ -756,17 +998,158 @@ export class Game {
         // Ampeln aktualisieren und schalten
         this.cityMap.updateTrafficLights();
         this.cycleTrafficLights();
-        
-        // Zufriedenheit berechnen
-        this.updateHappiness();
 
         this.updateUI();
+        this.drawPopulationGraph();
+    }
+    
+    private updatePopulationHistory(): void {
+        // Füge aktuellen Datenpunkt hinzu
+        this.populationHistory.push({
+            year: this.stats.year,
+            month: this.stats.month,
+            population: this.stats.population
+        });
+        
+        // Behalte nur die letzten 10 Jahre (120 Monate)
+        const maxDataPoints = this.GRAPH_HISTORY_YEARS * 12;
+        if (this.populationHistory.length > maxDataPoints) {
+            this.populationHistory = this.populationHistory.slice(-maxDataPoints);
+        }
+    }
+    
+    private drawPopulationGraph(): void {
+        if (!this.populationGraphCanvas || !this.populationGraphCtx) {
+            console.warn('Population graph canvas not available');
+            return;
+        }
+        
+        const ctx = this.populationGraphCtx;
+        const width = this.populationGraphCanvas.width;
+        const height = this.populationGraphCanvas.height;
+        
+        // Lösche Canvas
+        ctx.clearRect(0, 0, width, height);
+        
+        // Wenn keine Daten vorhanden, zeichne leeren Graph mit Nachricht
+        if (this.populationHistory.length < 1) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Warte auf Daten...', width / 2, height / 2);
+            return;
+        }
+        
+        if (this.populationHistory.length < 2) {
+            // Nur ein Datenpunkt - zeichne einen einzelnen Punkt
+            const padding = 10;
+            const graphHeight = height - padding * 2;
+            ctx.fillStyle = 'rgba(46, 204, 113, 1)';
+            ctx.beginPath();
+            ctx.arc(width / 2, padding + graphHeight / 2, 3, 0, Math.PI * 2);
+            ctx.fill();
+            return;
+        }
+        
+        // Finde Min/Max für Y-Achse
+        let maxPop = Math.max(...this.populationHistory.map(d => d.population), 100);
+        let minPop = Math.min(...this.populationHistory.map(d => d.population));
+        
+        // Runde auf nächste 100er
+        maxPop = Math.ceil(maxPop / 100) * 100;
+        minPop = Math.floor(minPop / 100) * 100;
+        
+        const padding = 10;
+        const graphWidth = width - padding * 2;
+        const graphHeight = height - padding * 2;
+        
+        // Zeichne Raster
+        ctx.strokeStyle = 'rgba(74, 144, 226, 0.1)';
+        ctx.lineWidth = 1;
+        
+        // Horizontale Rasterlinien (5 Linien)
+        for (let i = 0; i <= 4; i++) {
+            const y = padding + (graphHeight / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(padding, y);
+            ctx.lineTo(width - padding, y);
+            ctx.stroke();
+        }
+        
+        // Zeichne Graph-Linie
+        ctx.strokeStyle = 'rgba(46, 204, 113, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        const dataPoints = this.populationHistory;
+        const pointSpacing = graphWidth / (Math.max(dataPoints.length - 1, 1));
+        
+        dataPoints.forEach((data, index) => {
+            const x = padding + index * pointSpacing;
+            const normalizedPop = maxPop > minPop 
+                ? (data.population - minPop) / (maxPop - minPop)
+                : 0.5;
+            const y = padding + graphHeight - (normalizedPop * graphHeight);
+            
+            if (index === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        
+        ctx.stroke();
+        
+        // Zeichne Fläche unter der Linie
+        ctx.fillStyle = 'rgba(46, 204, 113, 0.15)';
+        ctx.lineTo(width - padding, height - padding);
+        ctx.lineTo(padding, height - padding);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Zeichne Punkte
+        ctx.fillStyle = 'rgba(46, 204, 113, 1)';
+        dataPoints.forEach((data, index) => {
+            const x = padding + index * pointSpacing;
+            const normalizedPop = maxPop > minPop 
+                ? (data.population - minPop) / (maxPop - minPop)
+                : 0.5;
+            const y = padding + graphHeight - (normalizedPop * graphHeight);
+            
+            // Zeichne nur jeden 12. Punkt (jedes Jahr)
+            if (data.month === 0 || index === dataPoints.length - 1) {
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
+        
+        // Zeichne Y-Achsen Labels
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'right';
+        
+        // Max Wert
+        ctx.fillText(maxPop.toString(), padding - 2, padding + 3);
+        // Min Wert
+        ctx.fillText(minPop.toString(), padding - 2, height - padding + 3);
+        
+        // Aktueller Wert (rechts)
+        if (dataPoints.length > 0) {
+            const currentPop = dataPoints[dataPoints.length - 1].population;
+            ctx.textAlign = 'left';
+            ctx.fillStyle = 'rgba(46, 204, 113, 1)';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText(currentPop.toString(), width - padding + 3, height / 2);
+        }
     }
 
     private updateHappiness(): void {
         const map = this.cityMap.getAllTiles();
         let hospitals = 0;
         let policeStations = 0;
+        let schools = 0;
+        let libraries = 0;
         
         // Zähle Services
         for (let y = 0; y < this.MAP_HEIGHT; y++) {
@@ -774,6 +1157,8 @@ export class Game {
                 const tile = map[y][x];
                 if (tile.type === TileType.HOSPITAL) hospitals++;
                 if (tile.type === TileType.POLICE) policeStations++;
+                if (tile.type === TileType.SCHOOL) schools++;
+                if (tile.type === TileType.LIBRARY) libraries++;
             }
         }
         
@@ -791,18 +1176,30 @@ export class Game {
         const policeDeficit = Math.max(0, neededPolice - policeStations);
         happiness -= policeDeficit * 10; // -10% pro fehlender Polizeistation
         
+        // Pro 3000 Einwohner brauchen wir mindestens 1 Schule
+        const neededSchools = Math.ceil(this.stats.population / 3000);
+        const schoolDeficit = Math.max(0, neededSchools - schools);
+        happiness -= schoolDeficit * 8; // -8% pro fehlender Schule
+        
+        // Pro 4000 Einwohner brauchen wir mindestens 1 Bibliothek
+        const neededLibraries = Math.ceil(this.stats.population / 4000);
+        const libraryDeficit = Math.max(0, neededLibraries - libraries);
+        happiness -= libraryDeficit * 6; // -6% pro fehlender Bibliothek
+        
         // Begrenzen auf 0-100
         this.stats.happiness = Math.max(0, Math.min(100, happiness));
         
         // UI aktualisieren
-        this.updateHappinessUI(hospitals, policeStations);
+        this.updateHappinessUI(hospitals, policeStations, schools, libraries);
     }
 
-    private updateHappinessUI(hospitals: number, policeStations: number): void {
+    private updateHappinessUI(hospitals: number, policeStations: number, schools: number, libraries: number): void {
         const happinessBar = document.getElementById('happiness-bar');
         const happinessValue = document.getElementById('happiness-value');
         const hospitalCount = document.getElementById('hospital-count');
         const policeCount = document.getElementById('police-count');
+        const schoolCount = document.getElementById('school-count');
+        const libraryCount = document.getElementById('library-count');
         
         if (happinessBar) {
             happinessBar.style.width = `${this.stats.happiness}%`;
@@ -832,6 +1229,8 @@ export class Game {
         
         if (hospitalCount) hospitalCount.textContent = hospitals.toString();
         if (policeCount) policeCount.textContent = policeStations.toString();
+        if (schoolCount) schoolCount.textContent = schools.toString();
+        if (libraryCount) libraryCount.textContent = libraries.toString();
     }
 
     // Ampeln zwischen RED_NS und RED_EW wechseln
@@ -851,10 +1250,16 @@ export class Game {
     private updateUI(): void {
         const popElement = document.getElementById('population');
         const moneyElement = document.getElementById('money');
+        const loanElement = document.getElementById('loan');
         const yearElement = document.getElementById('year');
 
         if (popElement) popElement.textContent = this.stats.population.toString();
         if (moneyElement) moneyElement.textContent = this.stats.money.toString();
+        if (loanElement) {
+            loanElement.textContent = this.stats.loan.toString();
+            // Färbe rot wenn Schulden vorhanden sind
+            loanElement.style.color = this.stats.loan > 0 ? '#ff4444' : '#4caf50';
+        }
         if (yearElement) yearElement.textContent = this.stats.year.toString();
     }
 
@@ -926,6 +1331,22 @@ export class Game {
     }
 
     private renderTile(x: number, y: number, tile: any, gridX: number, gridY: number): void {
+        const ctx = this.canvas.getContext('2d')!;
+        const isPowerlineMode = this.currentTool === 'powerline';
+        
+        // 1. Stromleitungen ZUERST zeichnen (unter allen Gebäuden)
+        if (tile.powerLine) {
+            const powerConnections = this.getPowerLineConnections(gridX, gridY);
+            this.renderer.drawPowerLine(x, y, powerConnections.north, powerConnections.east,
+                                       powerConnections.south, powerConnections.west);
+        }
+        
+        // 2. Im Stromleitungs-Modus: Transparenz für alle Gebäude und Straßen
+        if (isPowerlineMode) {
+            ctx.globalAlpha = 0.3;
+        }
+        
+        // 3. Gebäude und Infrastruktur zeichnen
         switch (tile.type) {
             case TileType.RESIDENTIAL:
                 this.renderer.drawResidential(x, y, tile.development, tile.powered, tile.variant || 0);
@@ -976,16 +1397,20 @@ export class Game {
             case TileType.POLICE:
                 this.renderer.drawPolice(x, y, tile.powered);
                 break;
+            case TileType.SCHOOL:
+                this.renderer.drawSchool(x, y, tile.powered);
+                break;
+            case TileType.LIBRARY:
+                this.renderer.drawLibrary(x, y, tile.powered);
+                break;
         }
         
-        // Stromleitung als Overlay zeichnen
-        if (tile.powerLine) {
-            const powerConnections = this.getPowerLineConnections(gridX, gridY);
-            this.renderer.drawPowerLine(x, y, powerConnections.north, powerConnections.east,
-                                       powerConnections.south, powerConnections.west);
+        // 4. Transparenz zurücksetzen
+        if (isPowerlineMode) {
+            ctx.globalAlpha = 1.0;
         }
 
-        // Kein-Strom-Indikator
+        // 5. Kein-Strom-Indikator (immer vollständig sichtbar)
         if (!tile.powered && tile.type !== TileType.EMPTY &&
             tile.type !== TileType.ROAD && tile.type !== TileType.PARK && !tile.powerLine) {
             this.renderer.drawNoPowerIndicator(x, y);

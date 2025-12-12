@@ -8,7 +8,7 @@ export class SimulationEngine {
         this.cityMap = cityMap;
     }
 
-    public simulate(): number {
+    public simulate(happiness: number): number {
         this.cityMap.updatePowerGrid();
 
         let monthlyIncome = 0;
@@ -20,7 +20,7 @@ export class SimulationEngine {
 
                 switch (tile.type) {
                     case TileType.RESIDENTIAL:
-                        monthlyIncome += this.simulateResidential(x, y, tile);
+                        monthlyIncome += this.simulateResidential(x, y, tile, happiness);
                         break;
                     case TileType.COMMERCIAL:
                         monthlyIncome += this.simulateCommercial(x, y, tile);
@@ -38,23 +38,39 @@ export class SimulationEngine {
         return Math.floor(monthlyIncome);
     }
 
-    private simulateResidential(x: number, y: number, tile: any): number {
+    private simulateResidential(x: number, y: number, tile: any, happiness: number): number {
         const hasRoad = this.cityMap.hasAdjacentRoad(x, y);
         
-        // Grundbevölkerung auch ohne Entwicklung
-        if (tile.population === 0 && hasRoad && tile.powered) {
-            tile.population = 10; // Startbevölkerung
+        // Abwanderung bei niedriger Zufriedenheit
+        if (happiness < 40 && tile.population > 0) {
+            // Je niedriger die Zufriedenheit, desto höher die Abwanderungsrate
+            const emigrationChance = (40 - happiness) / 200; // 0% bei 40, 20% bei 0
+            if (Math.random() < emigrationChance) {
+                const loss = Math.floor(Math.random() * 10) + 5; // 5-15 Einwohner
+                tile.population = Math.max(0, tile.population - loss);
+                
+                // Bei sehr niedriger Bevölkerung sinkt auch Entwicklung
+                if (tile.population < 10 + (tile.development - 1) * 50 && tile.development > 0) {
+                    tile.development = Math.max(0, tile.development - 1);
+                }
+            }
         }
         
-        if (hasRoad && tile.powered && tile.development < 3) {
+        // Grundbevölkerung auch ohne Entwicklung
+        if (tile.population === 0 && hasRoad && tile.powered && happiness >= 30) {
+            tile.population = 10; // Startbevölkerung (nur wenn Zufriedenheit nicht zu niedrig)
+        }
+        
+        // Wachstum nur bei ausreichender Zufriedenheit
+        if (hasRoad && tile.powered && tile.development < 3 && happiness >= 50) {
             if (Math.random() < 0.05) {
                 tile.development++;
                 tile.population = 10 + tile.development * 50;
             }
         }
         
-        // Bevölkerung wächst auch ohne Entwicklungssprünge
-        if (hasRoad && tile.powered && tile.population > 0 && tile.population < 10 + tile.development * 50) {
+        // Bevölkerung wächst auch ohne Entwicklungssprünge (nur bei guter Zufriedenheit)
+        if (hasRoad && tile.powered && tile.population > 0 && tile.population < 10 + tile.development * 50 && happiness >= 40) {
             if (Math.random() < 0.1) {
                 tile.population += Math.floor(Math.random() * 5) + 1;
             }
