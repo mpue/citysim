@@ -13,8 +13,8 @@ export class AmberRenderer {
     private iconsLoaded: boolean = false;
     
     // Moderne Farbpalette
-    private readonly BG_COLOR = '#1a1a2e';
-    private readonly GRID_COLOR = '#16213e';
+    private readonly BG_COLOR = '#222222';
+    private readonly GRID_COLOR = '#444444';
     
     // Wohngebäude - warme Farbtöne
     private readonly RES_BASE = '#e94560';
@@ -361,47 +361,128 @@ export class AmberRenderer {
     }
 
     public drawRoad(x: number, y: number, hasNorth: boolean, hasEast: boolean, hasSouth: boolean, hasWest: boolean, traffic: number = 0, vehicles?: any[]): void {
+        const center = this.TILE_SIZE / 2;
+        const roadWidth = 14;
+        const offset = (this.TILE_SIZE - roadWidth) / 2;
+        const connections = [hasNorth, hasEast, hasSouth, hasWest].filter(c => c).length;
+        
+        // Straßengrundfarbe
         this.ctx.fillStyle = this.ROAD_COLOR;
         
-        const center = this.TILE_SIZE / 2;
-        const roadWidth = 14;  // Breiter: von 8 auf 14
-        const offset = (this.TILE_SIZE - roadWidth) / 2;
+        // Bei Kurven (2 Verbindungen, nicht gegenüberliegend) mit abgerundeten Ecken zeichnen
+        const isCurve = connections === 2 && !((hasNorth && hasSouth) || (hasEast && hasWest));
         
-        // Immer Zentrum zeichnen
-        this.ctx.fillRect(x + offset, y + offset, roadWidth, roadWidth);
+        if (isCurve) {
+            // Abgerundete Kurve zeichnen
+            this.ctx.save();
+            this.ctx.fillStyle = this.ROAD_COLOR;
+            
+            if (hasNorth && hasEast) {
+                // Nordost-Kurve: L-Form mit abgerundeter Innenecke
+                this.ctx.fillRect(x + offset, y, roadWidth, offset + roadWidth);  // Nord
+                this.ctx.fillRect(x + offset, y + offset, this.TILE_SIZE - offset, roadWidth);  // Ost
+                // Abgerundete Innenecke
+                this.ctx.beginPath();
+                this.ctx.arc(x + offset + roadWidth, y + offset, roadWidth/2, Math.PI, Math.PI * 1.5);
+                this.ctx.lineTo(x + offset + roadWidth, y + offset);
+                this.ctx.lineTo(x + offset + roadWidth - roadWidth/2, y + offset);
+                this.ctx.fill();
+            } else if (hasEast && hasSouth) {
+                // Südost-Kurve
+                this.ctx.fillRect(x + offset, y + offset, this.TILE_SIZE - offset, roadWidth);  // Ost
+                this.ctx.fillRect(x + offset, y + offset, roadWidth, this.TILE_SIZE - offset);  // Süd
+                this.ctx.beginPath();
+                this.ctx.arc(x + offset + roadWidth, y + offset + roadWidth, roadWidth/2, Math.PI * 1.5, 0);
+                this.ctx.lineTo(x + offset + roadWidth, y + offset + roadWidth);
+                this.ctx.lineTo(x + offset + roadWidth, y + offset + roadWidth - roadWidth/2);
+                this.ctx.fill();
+            } else if (hasSouth && hasWest) {
+                // Südwest-Kurve
+                this.ctx.fillRect(x, y + offset, offset + roadWidth, roadWidth);  // West
+                this.ctx.fillRect(x + offset, y + offset, roadWidth, this.TILE_SIZE - offset);  // Süd
+                this.ctx.beginPath();
+                this.ctx.arc(x + offset, y + offset + roadWidth, roadWidth/2, 0, Math.PI * 0.5);
+                this.ctx.lineTo(x + offset, y + offset + roadWidth);
+                this.ctx.lineTo(x + offset + roadWidth/2, y + offset + roadWidth);
+                this.ctx.fill();
+            } else if (hasWest && hasNorth) {
+                // Nordwest-Kurve
+                this.ctx.fillRect(x, y + offset, offset + roadWidth, roadWidth);  // West
+                this.ctx.fillRect(x + offset, y, roadWidth, offset + roadWidth);  // Nord
+                this.ctx.beginPath();
+                this.ctx.arc(x + offset, y + offset, roadWidth/2, Math.PI * 0.5, Math.PI);
+                this.ctx.lineTo(x + offset, y + offset);
+                this.ctx.lineTo(x + offset, y + offset - roadWidth/2);
+                this.ctx.fill();
+            }
+            this.ctx.restore();
+        } else {
+            // Gerade Straßen oder Kreuzungen: normal zeichnen
+            this.ctx.fillRect(x + offset, y + offset, roadWidth, roadWidth);
+            
+            if (hasNorth) {
+                this.ctx.fillRect(x + offset, y, roadWidth, offset);
+            }
+            if (hasEast) {
+                this.ctx.fillRect(x + offset + roadWidth, y + offset, this.TILE_SIZE - offset - roadWidth, roadWidth);
+            }
+            if (hasSouth) {
+                this.ctx.fillRect(x + offset, y + offset + roadWidth, roadWidth, this.TILE_SIZE - offset - roadWidth);
+            }
+            if (hasWest) {
+                this.ctx.fillRect(x, y + offset, offset, roadWidth);
+            }
+        }
         
-        // Nur Verbindungen zu Nachbarn zeichnen
-        if (hasNorth) {
-            this.ctx.fillRect(x + offset, y, roadWidth, offset);
-        }
-        if (hasEast) {
-            this.ctx.fillRect(x + offset + roadWidth, y + offset, this.TILE_SIZE - offset - roadWidth, roadWidth);
-        }
-        if (hasSouth) {
-            this.ctx.fillRect(x + offset, y + offset + roadWidth, roadWidth, this.TILE_SIZE - offset - roadWidth);
-        }
-        if (hasWest) {
-            this.ctx.fillRect(x, y + offset, offset, roadWidth);
-        }
-        
-        // Gelbe Markierungslinien (dünner wegen breiterer Straße)
+        // Gelbe Markierungslinien
+        this.ctx.strokeStyle = this.ROAD_LINE;
         this.ctx.fillStyle = this.ROAD_LINE;
-        const hasVertical = hasNorth || hasSouth;
-        const hasHorizontal = hasEast || hasWest;
+        this.ctx.lineWidth = 1;
         
-        if (hasVertical && !hasHorizontal) {
-            // Vertikale Straße - gestrichelte Mittellinie
-            for (let i = 0; i < this.TILE_SIZE; i += 4) {
-                this.ctx.fillRect(x + center - 0.5, y + i, 1, 2);
+        if (connections === 1 || (connections === 2 && ((hasNorth && hasSouth) || (hasEast && hasWest)))) {
+            // Gerade Straße - gestrichelte Mittellinie
+            if (hasNorth || hasSouth) {
+                // Vertikal
+                for (let i = 0; i < this.TILE_SIZE; i += 4) {
+                    this.ctx.fillRect(x + center - 0.5, y + i, 1, 2);
+                }
+            } else {
+                // Horizontal
+                for (let i = 0; i < this.TILE_SIZE; i += 4) {
+                    this.ctx.fillRect(x + i, y + center - 0.5, 2, 1);
+                }
             }
-        } else if (hasHorizontal && !hasVertical) {
-            // Horizontale Straße - gestrichelte Mittellinie
-            for (let i = 0; i < this.TILE_SIZE; i += 4) {
-                this.ctx.fillRect(x + i, y + center - 0.5, 2, 1);
+        } else if (isCurve) {
+            // Kurven - gebogene gestrichelte Linie von Mitte zu Mitte
+            this.ctx.setLineDash([2, 2]);
+            this.ctx.beginPath();
+            
+            // Radius = halbe Tile-Größe, damit Bogen von Mitte zu Mitte geht
+            const curveRadius = center;
+            
+            if (hasNorth && hasEast) {
+                // Von Mitte oben (center, 0) nach Mitte rechts (TILE_SIZE, center)
+                // Zentrum an äußerer Ecke: (TILE_SIZE, 0)
+                this.ctx.arc(x + this.TILE_SIZE, y, curveRadius, Math.PI, Math.PI * 0.5, true);
+            } else if (hasEast && hasSouth) {
+                // Von Mitte rechts (TILE_SIZE, center) nach Mitte unten (center, TILE_SIZE)
+                // Zentrum an äußerer Ecke: (TILE_SIZE, TILE_SIZE)
+                this.ctx.arc(x + this.TILE_SIZE, y + this.TILE_SIZE, curveRadius, Math.PI * 1.5, Math.PI, true);
+            } else if (hasSouth && hasWest) {
+                // Von Mitte unten (center, TILE_SIZE) nach Mitte links (0, center)
+                // Zentrum an äußerer Ecke: (0, TILE_SIZE)
+                this.ctx.arc(x, y + this.TILE_SIZE, curveRadius, 0, Math.PI * 1.5, true);
+            } else if (hasWest && hasNorth) {
+                // Von Mitte links (0, center) nach Mitte oben (center, 0)
+                // Zentrum an äußerer Ecke: (0, 0)
+                this.ctx.arc(x, y, curveRadius, Math.PI * 0.5, 0, true);
             }
+            
+            this.ctx.stroke();
+            this.ctx.setLineDash([]);
         }
         
-        // Fahrzeuge zeichnen wenn Verkehr vorhanden
+        // Fahrzeuge zeichnen
         if (vehicles && vehicles.length > 0) {
             for (const vehicle of vehicles) {
                 this.drawVehicle(vehicle.x, vehicle.y, vehicle.direction, vehicle.color, vehicle.lane);

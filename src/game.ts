@@ -84,9 +84,6 @@ export class Game {
         this.setupBackgroundMusic();
         this.startGameLoop();
         this.startSimulation();
-        
-        // Automatisch laden beim Start
-        this.autoLoad();
     }
 
     private setupBackgroundMusic(): void {
@@ -141,14 +138,18 @@ export class Game {
 
     private saveGame(): void {
         try {
+            const saveName = prompt('Name f\u00fcr diese Stadt:', `Stadt_${this.stats.year}`);
+            if (!saveName) return;
+            
             const saveData = {
                 map: this.cityMap.getAllTiles(),
                 stats: this.stats,
                 timestamp: Date.now()
             };
             
-            localStorage.setItem('citysim_save', JSON.stringify(saveData));
-            this.showInfo('Spiel erfolgreich gespeichert!');
+            const saveKey = `citysim_save_${saveName}`;
+            localStorage.setItem(saveKey, JSON.stringify(saveData));
+            this.showInfo('Spiel erfolgreich gespeichert als "' + saveName + '"!');
         } catch (e) {
             this.showInfo('Fehler beim Speichern: ' + (e as Error).message);
         }
@@ -187,16 +188,36 @@ export class Game {
         }
     }
 
-    private autoLoad(): void {
-        const saveDataStr = localStorage.getItem('citysim_save');
-        if (saveDataStr) {
-            // Automatisch laden nach 1 Sekunde wenn Speicherstand vorhanden
-            setTimeout(() => {
-                const autoload = confirm('Gespeichertes Spiel gefunden. M\u00f6chtest du es laden?');
-                if (autoload) {
-                    this.loadGame();
+    public loadGameFromKey(saveKey: string): void {
+        try {
+            const saveDataStr = localStorage.getItem(saveKey);
+            if (!saveDataStr) {
+                this.showInfo('Speicherstand nicht gefunden!');
+                return;
+            }
+            
+            const saveData = JSON.parse(saveDataStr);
+            
+            // Karte wiederherstellen
+            const map = this.cityMap.getAllTiles();
+            for (let y = 0; y < this.MAP_HEIGHT; y++) {
+                for (let x = 0; x < this.MAP_WIDTH; x++) {
+                    if (saveData.map[y] && saveData.map[y][x]) {
+                        Object.assign(map[y][x], saveData.map[y][x]);
+                    }
                 }
-            }, 500);
+            }
+            
+            // Stats wiederherstellen
+            this.stats = saveData.stats;
+            
+            // Power Grid neu berechnen
+            this.cityMap.updatePowerGrid();
+            
+            this.updateUI();
+            this.showInfo('Stadt erfolgreich geladen!');
+        } catch (e) {
+            this.showInfo('Fehler beim Laden: ' + (e as Error).message);
         }
     }
 
@@ -262,9 +283,9 @@ export class Game {
             const pos = this.getCanvasPosition(e);
             this.selectedTile = pos;
             
-            // Cursor-Vorschau für 2x2 Kraftwerk
+            // Cursor-Vorschau für 3x3 Kraftwerk
             if (this.currentTool === 'power') {
-                this.selectedTile = { ...pos, width: 2, height: 2 };
+                this.selectedTile = { ...pos, width: 3, height: 3 };
             }
 
             // Während des Ziehens
@@ -435,9 +456,48 @@ export class Game {
         if (!tile) return;
 
         if (this.currentTool === 'bulldozer') {
-            this.cityMap.setTileType(x, y, TileType.EMPTY);
-            this.cityMap.setPowerLine(x, y, false);
-            this.showInfo('Gebäude abgerissen');
+            // Prüfen ob es ein Kraftwerk (3x3) ist
+            const targetTile = this.cityMap.getTile(x, y);
+            if (targetTile && targetTile.type === TileType.POWER_PLANT) {
+                // Finde die obere linke Ecke des 3x3 Kraftwerks
+                let startX = x;
+                let startY = y;
+                
+                // Nach links suchen (max 2 Schritte)
+                for (let i = 1; i <= 2; i++) {
+                    if (x - i >= 0 && this.cityMap.getTile(x - i, y)?.type === TileType.POWER_PLANT) {
+                        startX = x - i;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Nach oben suchen (max 2 Schritte)
+                for (let i = 1; i <= 2; i++) {
+                    if (y - i >= 0 && this.cityMap.getTile(startX, y - i)?.type === TileType.POWER_PLANT) {
+                        startY = y - i;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Alle 9 Tiles des Kraftwerks abreißen
+                for (let dy = 0; dy < 3; dy++) {
+                    for (let dx = 0; dx < 3; dx++) {
+                        if (this.cityMap.isValidPosition(startX + dx, startY + dy)) {
+                            this.cityMap.setTileType(startX + dx, startY + dy, TileType.EMPTY);
+                            this.cityMap.setPowerLine(startX + dx, startY + dy, false);
+                        }
+                    }
+                }
+                this.showInfo('Kraftwerk abgerissen');
+            } else {
+                // Normales Gebäude abreißen
+                this.cityMap.setTileType(x, y, TileType.EMPTY);
+                this.cityMap.setPowerLine(x, y, false);
+                this.showInfo('Gebäude abgerissen');
+            }
+            this.cityMap.updatePowerGrid();
             return;
         }
 

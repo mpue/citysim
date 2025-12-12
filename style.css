@@ -461,6 +461,180 @@ body {
     display: none;
 }
 
+/* Start Screen */
+#start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+#start-screen-content {
+    text-align: center;
+    padding: 40px;
+    background: rgba(26, 26, 46, 0.95);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    max-width: 600px;
+    width: 90%;
+}
+
+#start-logo {
+    width: 150px;
+    height: auto;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+#start-title {
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, #5a5a5a 0%, #e94560 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+}
+
+#start-subtitle {
+    font-size: 16px;
+    color: #b0b0b0;
+    letter-spacing: 2px;
+    margin-bottom: 40px;
+    text-transform: uppercase;
+}
+
+#start-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.start-btn {
+    background: linear-gradient(135deg, rgba(90, 90, 90, 0.3) 0%, rgba(233, 69, 96, 0.3) 100%);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 20px 40px;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.start-btn:hover {
+    background: linear-gradient(135deg, rgba(90, 90, 90, 0.6) 0%, rgba(233, 69, 96, 0.6) 100%);
+    border-color: #e94560;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4);
+}
+
+.start-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.btn-icon {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.btn-text {
+    flex: 1;
+}
+
+#saved-games-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#saved-games-section h3 {
+    font-size: 14px;
+    color: #b0b0b0;
+    letter-spacing: 1.5px;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+}
+
+#saved-games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.saved-game-item {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.saved-game-item:hover {
+    background: rgba(90, 90, 90, 0.3);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateX(5px);
+}
+
+.saved-game-info {
+    text-align: left;
+    flex: 1;
+}
+
+.saved-game-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 5px;
+}
+
+.saved-game-stats {
+    font-size: 11px;
+    color: #b0b0b0;
+}
+
+.saved-game-delete {
+    background: rgba(233, 69, 96, 0.3);
+    border: 1px solid rgba(233, 69, 96, 0.5);
+    border-radius: 4px;
+    padding: 5px 10px;
+    color: #e94560;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.saved-game-delete:hover {
+    background: rgba(233, 69, 96, 0.6);
+    color: #ffffff;
+}
+
+.no-saves-message {
+    color: #7a7a7a;
+    font-size: 12px;
+    font-style: italic;
+    padding: 20px;
+}
+
 /* Responsive Design */
 @media (max-width: 800px) {
     #toolbar {
@@ -475,4 +649,11 @@ body {
     #header h1 {
         font-size: 20px;
     }
-}
+    
+    #start-title {
+        font-size: 36px;
+    }
+    
+    .start-btn {
+        font-size: 16px;
+        padding: 15px 30px;

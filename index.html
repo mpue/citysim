@@ -7,7 +7,27 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="container">
+    <div id="start-screen">
+        <div id="start-screen-content">
+            <img src="icons/logo.png" alt="CitySim Logo" id="start-logo">
+            <h1 id="start-title">CITYSIM</h1>
+            <p id="start-subtitle">Hercules Amber Edition</p>
+            
+            <div id="start-buttons">
+                <button id="new-game-btn" class="start-btn">
+                    <span class="btn-icon">+</span>
+                    <span class="btn-text">NEUE STADT</span>
+                </button>
+                
+                <div id="saved-games-section">
+                    <h3>Gespeicherte Städte</h3>
+                    <div id="saved-games-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="container" style="display: none;">
         <div id="header">
             <img src="icons/logo.png" alt="CitySim Logo" id="logo">
             <div id="header-content">
@@ -79,6 +99,6 @@
         </div>
     </div>
     
-    <script type="module" src="dist/main.js?v=4"></script>
+    <script type="module" src="dist/main.js?v=18"></script>
 </body>
 </html>
