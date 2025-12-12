@@ -31,6 +31,7 @@ export class Game {
     private populationHistory: Array<{year: number, month: number, population: number}>;
     private populationGraphCanvas: HTMLCanvasElement | null;
     private populationGraphCtx: CanvasRenderingContext2D | null;
+    private showTrafficDensity: boolean;
 
     private readonly MAP_WIDTH = 64;
     private readonly MAP_HEIGHT = 64;
@@ -77,6 +78,7 @@ export class Game {
         this.populationHistory = [];
         this.populationGraphCanvas = document.getElementById('population-graph') as HTMLCanvasElement;
         this.populationGraphCtx = this.populationGraphCanvas?.getContext('2d') || null;
+        this.showTrafficDensity = false;
 
         this.stats = {
             money: 20000,
@@ -139,6 +141,7 @@ export class Game {
         const saveBtn = document.getElementById('save-btn');
         const loadBtn = document.getElementById('load-btn');
         const loanBtn = document.getElementById('loan-btn');
+        const trafficBtn = document.getElementById('traffic-btn');
         
         if (saveBtn) {
             saveBtn.addEventListener('click', () => this.saveGame());
@@ -149,9 +152,26 @@ export class Game {
         if (loanBtn) {
             loanBtn.addEventListener('click', () => this.openLoanDialog());
         }
+        if (trafficBtn) {
+            trafficBtn.addEventListener('click', () => this.toggleTrafficDensity());
+        }
         
         // Bank Dialog Event Listeners
         this.setupBankDialog();
+    }
+    
+    private toggleTrafficDensity(): void {
+        this.showTrafficDensity = !this.showTrafficDensity;
+        const btn = document.getElementById('traffic-btn');
+        if (btn) {
+            if (this.showTrafficDensity) {
+                btn.classList.add('active');
+                this.showInfo('Verkehrsdichte-Ansicht aktiviert');
+            } else {
+                btn.classList.remove('active');
+                this.showInfo('Verkehrsdichte-Ansicht deaktiviert');
+            }
+        }
     }
     
     private setupBankDialog(): void {
@@ -1150,8 +1170,10 @@ export class Game {
         let policeStations = 0;
         let schools = 0;
         let libraries = 0;
+        let parks = 0;
+        let industrialTiles = 0;
         
-        // Zähle Services
+        // Zähle Services und berechne Umweltfaktoren
         for (let y = 0; y < this.MAP_HEIGHT; y++) {
             for (let x = 0; x < this.MAP_WIDTH; x++) {
                 const tile = map[y][x];
@@ -1159,6 +1181,10 @@ export class Game {
                 if (tile.type === TileType.POLICE) policeStations++;
                 if (tile.type === TileType.SCHOOL) schools++;
                 if (tile.type === TileType.LIBRARY) libraries++;
+                if (tile.type === TileType.PARK) parks++;
+                if (tile.type === TileType.INDUSTRIAL && tile.development > 0) {
+                    industrialTiles += tile.development; // Mehr Entwicklung = mehr Verschmutzung
+                }
             }
         }
         
@@ -1185,6 +1211,70 @@ export class Game {
         const neededLibraries = Math.ceil(this.stats.population / 4000);
         const libraryDeficit = Math.max(0, neededLibraries - libraries);
         happiness -= libraryDeficit * 6; // -6% pro fehlender Bibliothek
+        
+        // NEUE FAKTOREN:
+        
+        // Luftqualität - basiert auf Industrie vs. Bevölkerung
+        if (this.stats.population > 0) {
+            const pollutionRatio = industrialTiles / (this.stats.population / 100); // Industrie pro 100 Einwohner
+            if (pollutionRatio > 3) {
+                happiness -= Math.floor((pollutionRatio - 3) * 3); // Starke Verschmutzung
+            }
+        }
+        
+        // Parks - Grünflächen verbessern Lebensqualität
+        const parkRatio = parks / Math.max(1, this.stats.population / 500); // 1 Park pro 500 Einwohner wäre ideal
+        if (parkRatio < 1 && this.stats.population > 100) {
+            happiness -= Math.floor((1 - parkRatio) * 10); // Bis zu -10% bei fehlenden Parks
+        } else if (parkRatio > 1) {
+            happiness += Math.min(5, Math.floor((parkRatio - 1) * 2)); // Bonus für viele Parks (max +5%)
+        }
+        
+        // Detaillierte Umgebungsanalyse für Wohngebiete
+        let residentialNearIndustry = 0;
+        let residentialNearParks = 0;
+        let totalResidential = 0;
+        
+        for (let y = 0; y < this.MAP_HEIGHT; y++) {
+            for (let x = 0; x < this.MAP_WIDTH; x++) {
+                const tile = map[y][x];
+                if (tile.type === TileType.RESIDENTIAL && tile.population > 0) {
+                    totalResidential++;
+                    
+                    // Prüfe Umgebung (3x3 Radius)
+                    let nearIndustry = false;
+                    let nearPark = false;
+                    
+                    for (let dy = -3; dy <= 3; dy++) {
+                        for (let dx = -3; dx <= 3; dx++) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (nx >= 0 && nx < this.MAP_WIDTH && ny >= 0 && ny < this.MAP_HEIGHT) {
+                                const neighborTile = map[ny][nx];
+                                if (neighborTile.type === TileType.INDUSTRIAL && neighborTile.development > 0) {
+                                    nearIndustry = true;
+                                }
+                                if (neighborTile.type === TileType.PARK) {
+                                    nearPark = true;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (nearIndustry) residentialNearIndustry++;
+                    if (nearPark) residentialNearParks++;
+                }
+            }
+        }
+        
+        // Auswirkungen der Nähe
+        if (totalResidential > 0) {
+            const badLocationRatio = residentialNearIndustry / totalResidential;
+            happiness -= Math.floor(badLocationRatio * 15); // Bis zu -15% wenn alle Wohnungen neben Industrie
+            
+            const goodLocationRatio = residentialNearParks / totalResidential;
+            happiness += Math.floor(goodLocationRatio * 10); // Bis zu +10% wenn alle Wohnungen nahe Parks
+        }
         
         // Begrenzen auf 0-100
         this.stats.happiness = Math.max(0, Math.min(100, happiness));
@@ -1409,12 +1499,44 @@ export class Game {
         if (isPowerlineMode) {
             ctx.globalAlpha = 1.0;
         }
+        
+        // 5. Verkehrsdichte-Overlay (wenn aktiviert und Straße)
+        if (this.showTrafficDensity && tile.type === TileType.ROAD) {
+            this.drawTrafficDensityOverlay(x, y, tile.traffic);
+        }
 
-        // 5. Kein-Strom-Indikator (immer vollständig sichtbar)
+        // 6. Kein-Strom-Indikator (immer vollständig sichtbar)
         if (!tile.powered && tile.type !== TileType.EMPTY &&
             tile.type !== TileType.ROAD && tile.type !== TileType.PARK && !tile.powerLine) {
             this.renderer.drawNoPowerIndicator(x, y);
         }
+    }
+    
+    private drawTrafficDensityOverlay(x: number, y: number, traffic: number): void {
+        const ctx = this.canvas.getContext('2d')!;
+        const tileSize = this.renderer.getTileSize();
+        
+        // Farbe basierend auf Verkehrsdichte (0-100)
+        let color: string;
+        if (traffic < 25) {
+            color = `rgba(46, 204, 113, 0.6)`; // Grün - wenig Verkehr
+        } else if (traffic < 50) {
+            color = `rgba(241, 196, 15, 0.6)`; // Gelb - mittel
+        } else if (traffic < 75) {
+            color = `rgba(230, 126, 34, 0.6)`; // Orange - viel
+        } else {
+            color = `rgba(231, 76, 60, 0.6)`; // Rot - Stau
+        }
+        
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, tileSize, tileSize);
+        
+        // Text mit Verkehrsdichte-Wert
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 8px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(traffic.toString(), x + tileSize / 2, y + tileSize / 2);
     }
 
     private getRoadConnections(x: number, y: number): { north: boolean, east: boolean, south: boolean, west: boolean } {

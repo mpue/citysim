@@ -4,7 +4,8 @@
   "description": "Städtebausimulation im Stil des ersten SimCity mit Bernstein-Optik",
   "main": "dist/game.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node build-minify.js",
+    "build:dev": "tsc",
     "watch": "tsc --watch",
     "dev": "tsc --watch"
   },
@@ -17,6 +18,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "terser": "^5.44.1",
     "typescript": "^5.3.3"
   },
   "dependencies": {
