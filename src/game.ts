@@ -32,6 +32,11 @@ export class Game {
     private populationGraphCanvas: HTMLCanvasElement | null;
     private populationGraphCtx: CanvasRenderingContext2D | null;
     private showTrafficDensity: boolean;
+    private achievementShown5000: boolean;
+    private achievementShown10000: boolean;
+    private achievementShown50000: boolean;
+    private achievementShown100000: boolean;
+    private achievementShown1000000: boolean;
 
     private readonly MAP_WIDTH = 64;
     private readonly MAP_HEIGHT = 64;
@@ -79,6 +84,11 @@ export class Game {
         this.populationGraphCanvas = document.getElementById('population-graph') as HTMLCanvasElement;
         this.populationGraphCtx = this.populationGraphCanvas?.getContext('2d') || null;
         this.showTrafficDensity = false;
+        this.achievementShown5000 = false;
+        this.achievementShown10000 = false;
+        this.achievementShown50000 = false;
+        this.achievementShown100000 = false;
+        this.achievementShown1000000 = false;
 
         this.stats = {
             money: 20000,
@@ -93,6 +103,7 @@ export class Game {
         this.setupEventListeners();
         this.setupSaveLoadButtons();
         this.setupBackgroundMusic();
+        this.setupAchievementDialog();
         this.updateUI();
         this.drawPopulationGraph(); // Initial graph zeichnen
         this.startGameLoop();
@@ -245,6 +256,120 @@ export class Game {
         }
     }
     
+    private setupAchievementDialog(): void {
+        const dialog = document.getElementById('achievement-dialog');
+        const closeBtn = document.getElementById('achievement-close');
+        const continueBtn = document.getElementById('achievement-continue');
+        
+        // Close Dialog
+        if (closeBtn && dialog) {
+            closeBtn.addEventListener('click', () => {
+                dialog.style.display = 'none';
+            });
+        }
+        
+        // Continue Button
+        if (continueBtn && dialog) {
+            continueBtn.addEventListener('click', () => {
+                dialog.style.display = 'none';
+            });
+        }
+        
+        // Close on overlay click
+        if (dialog) {
+            dialog.addEventListener('click', (e) => {
+                if (e.target === dialog) {
+                    dialog.style.display = 'none';
+                }
+            });
+        }
+    }
+    
+    private showAchievement(milestone: number, title: string, message: string): void {
+        const dialog = document.getElementById('achievement-dialog');
+        if (!dialog) return;
+        
+        // Update achievement title and message
+        const titleEl = document.getElementById('achievement-title');
+        const messageEl = document.getElementById('achievement-message');
+        
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.innerHTML = message;
+        
+        // Update achievement stats
+        const populationEl = document.getElementById('achievement-population');
+        const yearEl = document.getElementById('achievement-year');
+        const happinessEl = document.getElementById('achievement-happiness');
+        
+        if (populationEl) populationEl.textContent = this.stats.population.toLocaleString('de-DE');
+        if (yearEl) yearEl.textContent = this.stats.year.toString();
+        if (happinessEl) happinessEl.textContent = `${Math.round(this.stats.happiness)}%`;
+        
+        // Show dialog with animation
+        dialog.style.display = 'flex';
+        
+        // Play click sound as celebration
+        this.clickSound.play().catch(e => console.log('Sound playback failed:', e));
+    }
+    
+    private showAchievement5000(): void {
+        this.showAchievement(
+            5000,
+            '5.000 BÜRGER',
+            'Gratulation, Bürgermeister! Ihre Stadt hat die magische Grenze von 5.000 Einwohnern überschritten!<br><br>' +
+            'Unter Ihrer weitsichtigen Führung ist Slimcity zu einer florierenden Metropole herangewachsen. ' +
+            'Ihre Bürger danken Ihnen für eine lebenswerte Stadt mit guter Infrastruktur.<br><br>' +
+            'Weiter so! Die nächsten Ziele warten bereits auf Sie.'
+        );
+    }
+    
+    private showAchievement10000(): void {
+        this.showAchievement(
+            10000,
+            '10.000 BÜRGER',
+            'Außergewöhnlich! Ihre Stadt beherbergt nun 10.000 Einwohner!<br><br>' +
+            'Sie haben bewiesen, dass Sie nicht nur bauen, sondern auch nachhaltig planen können. ' +
+            'Die Bevölkerung wächst stetig und das Vertrauen in Ihre Führung ist ungebrochen.<br><br>' +
+            'Ihre Stadt entwickelt sich zu einem regionalen Zentrum!'
+        );
+    }
+    
+    private showAchievement50000(): void {
+        this.showAchievement(
+            50000,
+            '50.000 BÜRGER',
+            'Unglaublich! 50.000 Menschen nennen Ihre Stadt ihr Zuhause!<br><br>' +
+            'Slimcity ist zu einer bedeutenden Großstadt geworden. Ihre Verwaltungskunst und ' +
+            'Ihr Weitblick haben aus einem kleinen Ort eine pulsierende Metropole geschaffen.<br><br>' +
+            'Der Ruf Ihrer Stadt hallt weit über die Grenzen hinaus!'
+        );
+    }
+    
+    private showAchievement100000(): void {
+        this.showAchievement(
+            100000,
+            '100.000 BÜRGER',
+            'Sensationell! Die 100.000-Einwohner-Marke ist geknackt!<br><br>' +
+            'Sie haben Geschichte geschrieben! Ihre Stadt gehört nun zu den größten und ' +
+            'bedeutendsten Metropolen der Region. Eine sechsstellige Einwohnerzahl ist ein ' +
+            'Zeichen für herausragende Stadtplanung und visionäres Denken.<br><br>' +
+            'Slimcity ist ein Leuchtturm des Fortschritts!'
+        );
+    }
+    
+    private showAchievement1000000(): void {
+        this.showAchievement(
+            1000000,
+            '1.000.000 BÜRGER - MEGACITY!',
+            'LEGENDÄR! Eine MILLION Menschen leben in Ihrer Stadt!<br><br>' +
+            '🌟 Sie haben das Unmögliche möglich gemacht! Slimcity ist zur MEGACITY geworden - ' +
+            'eine Weltmetropole von globalem Rang. Ihr Name wird in die Geschichtsbücher eingehen ' +
+            'als der größte Stadtplaner aller Zeiten!<br><br>' +
+            '👑 Ihre Vision, Ihr Durchhaltevermögen und Ihre Führungsstärke haben dieses ' +
+            'Meisterwerk erschaffen. Sie sind eine lebende Legende!'
+        );
+    }
+    
     private openLoanDialog(): void {
         const dialog = document.getElementById('bank-dialog');
         if (!dialog) return;
@@ -351,6 +476,11 @@ export class Game {
                 map: this.cityMap.getAllTiles(),
                 stats: this.stats,
                 populationHistory: this.populationHistory,
+                achievementShown5000: this.achievementShown5000,
+                achievementShown10000: this.achievementShown10000,
+                achievementShown50000: this.achievementShown50000,
+                achievementShown100000: this.achievementShown100000,
+                achievementShown1000000: this.achievementShown1000000,
                 timestamp: Date.now()
             };
             
@@ -401,6 +531,13 @@ export class Game {
             } else {
                 this.populationHistory = [];
             }
+            
+            // Achievement flags wiederherstellen
+            this.achievementShown5000 = saveData.achievementShown5000 ?? false;
+            this.achievementShown10000 = saveData.achievementShown10000 ?? false;
+            this.achievementShown50000 = saveData.achievementShown50000 ?? false;
+            this.achievementShown100000 = saveData.achievementShown100000 ?? false;
+            this.achievementShown1000000 = saveData.achievementShown1000000 ?? false;
             
             // Power Grid neu berechnen
             this.cityMap.updatePowerGrid();
@@ -453,6 +590,13 @@ export class Game {
                 this.populationHistory = [];
             }
             
+            // Achievement flags wiederherstellen
+            this.achievementShown5000 = saveData.achievementShown5000 ?? false;
+            this.achievementShown10000 = saveData.achievementShown10000 ?? false;
+            this.achievementShown50000 = saveData.achievementShown50000 ?? false;
+            this.achievementShown100000 = saveData.achievementShown100000 ?? false;
+            this.achievementShown1000000 = saveData.achievementShown1000000 ?? false;
+            
             // Power Grid neu berechnen
             this.cityMap.updatePowerGrid();
             
@@ -474,9 +618,11 @@ export class Game {
         // Werkzeug-Auswahl
         document.querySelectorAll('.tool-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const button = (e.currentTarget as HTMLElement); // currentTarget ist immer der Button, nicht das img
                 document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-                (e.target as HTMLElement).classList.add('active');
-                this.currentTool = (e.target as HTMLElement).dataset.tool as ToolType;
+                button.classList.add('active');
+                this.currentTool = button.dataset.tool as ToolType;
             });
         });
 
@@ -1008,6 +1154,24 @@ export class Game {
         }
         
         this.stats.population = this.cityMap.calculatePopulation();
+        
+        // Check for population achievements (from highest to lowest to show the highest achieved)
+        if (!this.achievementShown1000000 && this.stats.population >= 1000000) {
+            this.achievementShown1000000 = true;
+            setTimeout(() => this.showAchievement1000000(), 500);
+        } else if (!this.achievementShown100000 && this.stats.population >= 100000) {
+            this.achievementShown100000 = true;
+            setTimeout(() => this.showAchievement100000(), 500);
+        } else if (!this.achievementShown50000 && this.stats.population >= 50000) {
+            this.achievementShown50000 = true;
+            setTimeout(() => this.showAchievement50000(), 500);
+        } else if (!this.achievementShown10000 && this.stats.population >= 10000) {
+            this.achievementShown10000 = true;
+            setTimeout(() => this.showAchievement10000(), 500);
+        } else if (!this.achievementShown5000 && this.stats.population >= 5000) {
+            this.achievementShown5000 = true;
+            setTimeout(() => this.showAchievement5000(), 500);
+        }
         
         // Bevölkerungsdaten für Graph speichern
         this.updatePopulationHistory();

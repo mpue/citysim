@@ -172,6 +172,46 @@
             </div>
         </div>
     </div>
+
+    <!-- Achievement Dialog -->
+    <div id="achievement-dialog" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog achievement-dialog">
+            <div class="modal-header achievement-header">
+                <h2>🏆 MEILENSTEIN ERREICHT!</h2>
+                <button class="modal-close" id="achievement-close">×</button>
+            </div>
+            <div class="modal-body achievement-body">
+                <div class="achievement-icon">🎉</div>
+                <h3 class="achievement-title" id="achievement-title">5000 BÜRGER</h3>
+                <p class="achievement-message" id="achievement-message">
+                    Gratulation, Bürgermeister! Ihre Stadt hat die magische Grenze von 5000 Einwohnern überschritten!
+                    <br><br>
+                    Unter Ihrer weitsichtigen Führung ist Slimcity zu einer florierenden Metropole herangewachsen.
+                    Ihre Bürger danken Ihnen für eine lebenswerte Stadt mit guter Infrastruktur.
+                    <br><br>
+                    Weiter so! Die nächsten Ziele warten bereits auf Sie.
+                </p>
+                <div class="achievement-stats">
+                    <div class="achievement-stat">
+                        <span class="stat-icon">👥</span>
+                        <span class="stat-value" id="achievement-population">5,000</span>
+                        <span class="stat-label">Einwohner</span>
+                    </div>
+                    <div class="achievement-stat">
+                        <span class="stat-icon">📅</span>
+                        <span class="stat-value" id="achievement-year">1920</span>
+                        <span class="stat-label">Jahr</span>
+                    </div>
+                    <div class="achievement-stat">
+                        <span class="stat-icon">😊</span>
+                        <span class="stat-value" id="achievement-happiness">85%</span>
+                        <span class="stat-label">Zufriedenheit</span>
+                    </div>
+                </div>
+                <button class="achievement-continue" id="achievement-continue">Weiter spielen</button>
+            </div>
+        </div>
+    </div>
         <script type="module" src="dist/main.js?v=24"></script>
 </body>
 </html>
