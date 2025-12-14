@@ -676,13 +676,18 @@ export class Game {
             if (this.currentTool === 'power') {
                 this.selectedTile = { ...pos, width: 3, height: 3 };
             }
+            
+            // Cursor-Vorschau für 2x2 Wasserpumpe
+            if (this.currentTool === 'waterpump') {
+                this.selectedTile = { ...pos, width: 2, height: 2 };
+            }
 
             // Während des Ziehens
             if (this.isDragging && this.dragStartPos) {
                 let targetPos = pos;
                 
-                // Shift-Taste: Nur horizontale oder vertikale Verbindungen für Straßen/Stromleitungen
-                if (e.shiftKey && (this.currentTool === 'road' || this.currentTool === 'powerline')) {
+                // Shift-Taste: Nur horizontale oder vertikale Verbindungen für Straßen/Stromleitungen/Wasserleitungen
+                if (e.shiftKey && (this.currentTool === 'road' || this.currentTool === 'powerline' || this.currentTool === 'waterline')) {
                     const dx = Math.abs(pos.x - this.dragStartPos.x);
                     const dy = Math.abs(pos.y - this.dragStartPos.y);
                     
@@ -699,8 +704,8 @@ export class Game {
                 
                 this.dragEndPos = targetPos;
                 
-                // Nur für Straßen und Stromleitungen: kontinuierlich platzieren
-                if (this.currentTool === 'road' || this.currentTool === 'powerline') {
+                // Nur für Straßen, Stromleitungen und Wasserleitungen: kontinuierlich platzieren
+                if (this.currentTool === 'road' || this.currentTool === 'powerline' || this.currentTool === 'waterline') {
                     if (targetPos.x !== this.dragStartPos.x || targetPos.y !== this.dragStartPos.y) {
                         this.handleTileClick(targetPos.x, targetPos.y);
                         this.dragStartPos = targetPos;
@@ -724,7 +729,7 @@ export class Game {
                     this.currentTool === 'industrial' ||
                     this.currentTool === 'park') {
                     this.handleAreaPlacement(this.dragStartPos, this.dragEndPos);
-                } else if (this.currentTool !== 'road' && this.currentTool !== 'powerline') {
+                } else if (this.currentTool !== 'road' && this.currentTool !== 'powerline' && this.currentTool !== 'waterline') {
                     // Einzelplatzierung für andere Werkzeuge
                     this.handleTileClick(this.dragStartPos.x, this.dragStartPos.y);
                 }
@@ -880,13 +885,40 @@ export class Game {
                     }
                 }
                 this.showInfo('Kraftwerk abgerissen');
+            } else if (targetTile && targetTile.type === TileType.WATER_PUMP) {
+                // Finde die obere linke Ecke der 2x2 Wasserpumpe
+                let startX = x;
+                let startY = y;
+                
+                // Nach links suchen (max 1 Schritt)
+                if (x - 1 >= 0 && this.cityMap.getTile(x - 1, y)?.type === TileType.WATER_PUMP) {
+                    startX = x - 1;
+                }
+                
+                // Nach oben suchen (max 1 Schritt)
+                if (y - 1 >= 0 && this.cityMap.getTile(startX, y - 1)?.type === TileType.WATER_PUMP) {
+                    startY = y - 1;
+                }
+                
+                // Alle 4 Tiles der Wasserpumpe abreißen
+                for (let dy = 0; dy < 2; dy++) {
+                    for (let dx = 0; dx < 2; dx++) {
+                        if (this.cityMap.isValidPosition(startX + dx, startY + dy)) {
+                            this.cityMap.setTileType(startX + dx, startY + dy, TileType.EMPTY);
+                            this.cityMap.setWaterLine(startX + dx, startY + dy, false);
+                        }
+                    }
+                }
+                this.showInfo('Wasserpumpe abgerissen');
             } else {
                 // Normales Gebäude abreißen
                 this.cityMap.setTileType(x, y, TileType.EMPTY);
                 this.cityMap.setPowerLine(x, y, false);
+                this.cityMap.setWaterLine(x, y, false);
                 this.showInfo('Gebäude abgerissen');
             }
             this.cityMap.updatePowerGrid();
+            this.cityMap.updateWaterGrid();
             return;
         }
 
@@ -906,6 +938,26 @@ export class Game {
                 this.updateUI();
                 this.cityMap.updatePowerGrid();
                 this.showInfo(`Stromleitung verlegt für $${cost}`);
+            }
+            return;
+        }
+        
+        // Wasserleitungen als Overlay behandeln
+        if (this.currentTool === 'waterline') {
+            const cost = TILE_COSTS[TileType.WATER_LINE];
+            
+            if (this.stats.money < cost) {
+                this.showInfo(`Nicht genug Geld! Benötigt: $${cost}, Verfügbar: $${this.stats.money}`);
+                return;
+            }
+            
+            // Wasserleitung auf dieser Kachel setzen
+            if (!tile.waterLine) {
+                this.cityMap.setWaterLine(x, y, true);
+                this.stats.money -= cost;
+                this.updateUI();
+                this.cityMap.updateWaterGrid();
+                this.showInfo(`Wasserleitung verlegt für $${cost}`);
             }
             return;
         }
@@ -951,6 +1003,43 @@ export class Game {
             return;
         }
         
+        // Wasserpumpe benötigt 2x2 Kacheln
+        if (tileType === TileType.WATER_PUMP) {
+            if (x >= this.MAP_WIDTH - 1 || y >= this.MAP_HEIGHT - 1) {
+                this.showInfo('Wasserpumpe benötigt 2x2 Kacheln - zu nah am Rand!');
+                return;
+            }
+            
+            // Prüfe alle 4 Kacheln
+            for (let dy = 0; dy < 2; dy++) {
+                for (let dx = 0; dx < 2; dx++) {
+                    const checkTile = this.cityMap.getTile(x + dx, y + dy);
+                    if (!checkTile || checkTile.type !== TileType.EMPTY) {
+                        this.showInfo('Wasserpumpe benötigt 2x2 freie Kacheln!');
+                        return;
+                    }
+                }
+            }
+            
+            if (this.stats.money < cost) {
+                this.showInfo(`Nicht genug Geld! Benötigt: $${cost}, Verfügbar: $${this.stats.money}`);
+                return;
+            }
+            
+            // Baue Wasserpumpe auf allen 4 Kacheln
+            this.stats.money -= cost;
+            for (let dy = 0; dy < 2; dy++) {
+                for (let dx = 0; dx < 2; dx++) {
+                    this.cityMap.setTileType(x + dx, y + dy, TileType.WATER_PUMP);
+                }
+            }
+            this.updateUI();
+            this.showInfo(`Wasserpumpe gebaut für $${cost}`);
+            // Wasserpumpen brauchen Strom, also erst mal kein Wasser
+            this.cityMap.updateWaterGrid();
+            return;
+        }
+        
         if (tile.type !== TileType.EMPTY) {
             // Beim Ziehen von Straßen/Stromleitungen über bebaute Felder nicht nochmal meckern
             if (!this.isDragging) {
@@ -978,6 +1067,8 @@ export class Game {
             'road': TileType.ROAD,
             'power': TileType.POWER_PLANT,
             'powerline': TileType.POWER_LINE,
+            'waterpump': TileType.WATER_PUMP,
+            'waterline': TileType.WATER_LINE,
             'park': TileType.PARK,
             'hospital': TileType.HOSPITAL,
             'police': TileType.POLICE,
@@ -995,6 +1086,8 @@ export class Game {
             'road': 'Straße',
             'power': 'Kraftwerk',
             'powerline': 'Stromleitung',
+            'waterpump': 'Wasserpumpe',
+            'waterline': 'Wasserleitung',
             'park': 'Park',
             'hospital': 'Krankenhaus',
             'police': 'Polizeistation',
@@ -1015,6 +1108,8 @@ export class Game {
             [TileType.ROAD]: 'Straße',
             [TileType.POWER_PLANT]: 'Kraftwerk',
             [TileType.POWER_LINE]: 'Stromleitung',
+            [TileType.WATER_PUMP]: 'Wasserpumpe',
+            [TileType.WATER_LINE]: 'Wasserleitung',
             [TileType.PARK]: 'Park',
             [TileType.HOSPITAL]: 'Krankenhaus',
             [TileType.POLICE]: 'Polizeistation',
@@ -1587,6 +1682,7 @@ export class Game {
     private renderTile(x: number, y: number, tile: any, gridX: number, gridY: number): void {
         const ctx = this.canvas.getContext('2d')!;
         const isPowerlineMode = this.currentTool === 'powerline';
+        const isWaterlineMode = this.currentTool === 'waterline';
         
         // 1. Stromleitungen ZUERST zeichnen (unter allen Gebäuden)
         if (tile.powerLine) {
@@ -1595,8 +1691,15 @@ export class Game {
                                        powerConnections.south, powerConnections.west);
         }
         
-        // 2. Im Stromleitungs-Modus: Transparenz für alle Gebäude und Straßen
-        if (isPowerlineMode) {
+        // 1.5. Wasserleitungen zeichnen (über Stromleitungen)
+        if (tile.waterLine) {
+            const waterConnections = this.getWaterLineConnections(gridX, gridY);
+            this.renderer.drawWaterLine(x, y, waterConnections.north, waterConnections.east,
+                                       waterConnections.south, waterConnections.west);
+        }
+        
+        // 2. Im Stromleitungs- oder Wasserleitungs-Modus: Transparenz für alle Gebäude und Straßen
+        if (isPowerlineMode || isWaterlineMode) {
             ctx.globalAlpha = 0.3;
         }
         
@@ -1642,6 +1745,15 @@ export class Game {
                     this.renderer.drawPowerPlant(x, y, tile.variant);
                 }
                 break;
+            case TileType.WATER_PUMP:
+                // Nur auf der Hauptkachel (linke obere) zeichnen
+                // Prüfe ob dies die linke obere Ecke einer 2x2 Wasserpumpe ist
+                const isMainWaterPump = (gridX === 0 || this.cityMap.getTile(gridX - 1, gridY)?.type !== TileType.WATER_PUMP) &&
+                                        (gridY === 0 || this.cityMap.getTile(gridX, gridY - 1)?.type !== TileType.WATER_PUMP);
+                if (isMainWaterPump) {
+                    this.renderer.drawWaterPump(x, y);
+                }
+                break;
             case TileType.PARK:
                 this.renderer.drawPark(x, y, tile.variant);
                 break;
@@ -1660,7 +1772,7 @@ export class Game {
         }
         
         // 4. Transparenz zurücksetzen
-        if (isPowerlineMode) {
+        if (isPowerlineMode || isWaterlineMode) {
             ctx.globalAlpha = 1.0;
         }
         
@@ -1669,10 +1781,21 @@ export class Game {
             this.drawTrafficDensityOverlay(x, y, tile.traffic);
         }
 
-        // 6. Kein-Strom-Indikator (immer vollständig sichtbar)
-        if (!tile.powered && tile.type !== TileType.EMPTY &&
-            tile.type !== TileType.ROAD && tile.type !== TileType.PARK && !tile.powerLine) {
+        // 6. Kein-Strom-Indikator und Kein-Wasser-Indikator (immer vollständig sichtbar)
+        const needsPower = tile.type !== TileType.EMPTY && tile.type !== TileType.ROAD && 
+                          tile.type !== TileType.PARK && !tile.powerLine;
+        const needsWater = tile.type !== TileType.EMPTY && tile.type !== TileType.ROAD && 
+                          tile.type !== TileType.PARK && tile.type !== TileType.POWER_PLANT && !tile.waterLine;
+        
+        if (needsPower && !tile.powered && needsWater && !tile.watered) {
+            // Beide fehlen: abwechselnd anzeigen
+            this.renderer.drawNoWaterIndicator(x, y, true);
+        } else if (needsPower && !tile.powered) {
+            // Nur Strom fehlt
             this.renderer.drawNoPowerIndicator(x, y);
+        } else if (needsWater && !tile.watered) {
+            // Nur Wasser fehlt
+            this.renderer.drawNoWaterIndicator(x, y, false);
         }
     }
     
@@ -2040,6 +2163,18 @@ export class Game {
         const hasEast = x < this.MAP_WIDTH - 1 && (map[y][x + 1].powerLine || map[y][x + 1].type === TileType.POWER_PLANT);
         const hasSouth = y < this.MAP_HEIGHT - 1 && (map[y + 1][x].powerLine || map[y + 1][x].type === TileType.POWER_PLANT);
         const hasWest = x > 0 && (map[y][x - 1].powerLine || map[y][x - 1].type === TileType.POWER_PLANT);
+        
+        return { north: hasNorth, east: hasEast, south: hasSouth, west: hasWest };
+    }
+
+    private getWaterLineConnections(x: number, y: number): { north: boolean, east: boolean, south: boolean, west: boolean } {
+        const map = this.cityMap.getAllTiles();
+        
+        // Verbindungen zu anderen Wasserleitungen oder Wasserpumpen
+        const hasNorth = y > 0 && (map[y - 1][x].waterLine || map[y - 1][x].type === TileType.WATER_PUMP);
+        const hasEast = x < this.MAP_WIDTH - 1 && (map[y][x + 1].waterLine || map[y][x + 1].type === TileType.WATER_PUMP);
+        const hasSouth = y < this.MAP_HEIGHT - 1 && (map[y + 1][x].waterLine || map[y + 1][x].type === TileType.WATER_PUMP);
+        const hasWest = x > 0 && (map[y][x - 1].waterLine || map[y][x - 1].type === TileType.WATER_PUMP);
         
         return { north: hasNorth, east: hasEast, south: hasSouth, west: hasWest };
     }

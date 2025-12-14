@@ -27,6 +27,7 @@ export class AmberRenderer {
     private schoolIcon: HTMLImageElement | null = null;
     private libraryIcon: HTMLImageElement | null = null;
     private powerplantIcon: HTMLImageElement | null = null;
+    private waterpumpIcon: HTMLImageElement | null = null;
     private iconsLoaded: boolean = false;
     
     // Moderne Farbpalette
@@ -51,9 +52,9 @@ export class AmberRenderer {
     // Infrastruktur
     private readonly ROAD_COLOR = '#34495e';
     private readonly ROAD_LINE = '#f1c40f';
-    private readonly POWER_COLOR = '#00d4ff';
-    private readonly POWER_DARK = '#0099cc';
-    private readonly POWER_GLOW = '#00ffff';
+    private readonly POWER_COLOR = '#f1c40f';  // Gelb
+    private readonly POWER_DARK = '#d68910';   // Dunkelgelb
+    private readonly POWER_GLOW = '#f39c12';   // Gelber Glow
     
     // Parks - Grüntöne
     private readonly PARK_BASE = '#27ae6000';
@@ -181,6 +182,10 @@ export class AmberRenderer {
         this.powerplantIcon = new Image();
         this.powerplantIcon.src = 'icons/powerplant.png';
         
+        // Lade Waterpump Icon
+        this.waterpumpIcon = new Image();
+        this.waterpumpIcon.src = 'icons/commands/waterpunp.png';
+        
         // Warte bis alle Icons geladen sind
         const allIcons = [
             ...this.commercialBakeryIcons,
@@ -198,7 +203,8 @@ export class AmberRenderer {
             this.policeIcon,
             this.schoolIcon,
             this.libraryIcon,
-            this.powerplantIcon
+            this.powerplantIcon,
+            this.waterpumpIcon
         ];
         let loadedCount = 0;
         allIcons.forEach(img => {
@@ -856,6 +862,112 @@ export class AmberRenderer {
         this.ctx.fillRect(centerX - 1, centerY - 4, 2, 4); // Oberer Teil
         this.ctx.fillRect(centerX - 2, centerY, 4, 1);     // Mitte breit
         this.ctx.fillRect(centerX, centerY + 1, 2, 3);     // Unterer Teil
+        
+        this.ctx.shadowBlur = 0;
+    }
+
+    public drawWaterLine(x: number, y: number, hasNorth: boolean, hasEast: boolean, hasSouth: boolean, hasWest: boolean): void {
+        this.ctx.fillStyle = '#1e88e5'; // Dunkelblau
+        
+        const center = this.TILE_SIZE / 2;
+        const lineWidth = 3;
+        const offset = (this.TILE_SIZE - lineWidth) / 2;
+        
+        // Immer Zentrum zeichnen (Knotenpunkt)
+        this.ctx.fillStyle = '#42a5f5'; // Hellblau
+        this.ctx.fillRect(x + offset - 1, y + offset - 1, lineWidth + 2, lineWidth + 2);
+        
+        // Nur Verbindungen zu Nachbarn zeichnen
+        this.ctx.fillStyle = '#1e88e5';
+        if (hasNorth) {
+            this.ctx.fillRect(x + offset, y, lineWidth, offset);
+        }
+        if (hasEast) {
+            this.ctx.fillRect(x + offset + lineWidth, y + offset, this.TILE_SIZE - offset - lineWidth, lineWidth);
+        }
+        if (hasSouth) {
+            this.ctx.fillRect(x + offset, y + offset + lineWidth, lineWidth, this.TILE_SIZE - offset - lineWidth);
+        }
+        if (hasWest) {
+            this.ctx.fillRect(x, y + offset, offset, lineWidth);
+        }
+        
+        // Tropfen an Verbindungen
+        this.ctx.fillStyle = '#42a5f5';
+        if (hasNorth || hasSouth || hasEast || hasWest) {
+            this.ctx.fillRect(x + center - 1, y + center - 1, 2, 2);
+        }
+    }
+
+    public drawWaterPump(x: number, y: number): void {
+        const size = this.TILE_SIZE * 2;
+        
+        // Versuche Icon zu rendern, falls geladen
+        if (this.iconsLoaded && this.waterpumpIcon && this.waterpumpIcon.complete) {
+            this.ctx.drawImage(this.waterpumpIcon, x, y, size, size);
+            return;
+        }
+        
+        // Fallback: Gezeichnete Wasserpumpe
+        const shadowColor = 'rgba(0, 0, 0, 0.3)';
+        
+        // Schatten
+        this.ctx.fillStyle = shadowColor;
+        this.ctx.fillRect(x + 4, y + 4, size - 4, size - 4);
+        
+        // Gebäude
+        this.ctx.fillStyle = '#1565c0'; // Dunkelblau
+        this.ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
+        
+        // Innerer Bereich
+        this.ctx.fillStyle = '#1e88e5'; // Mittelblau
+        this.ctx.fillRect(x + 6, y + 6, size - 12, size - 12);
+        
+        // Wassertropfen-Symbol
+        this.ctx.fillStyle = '#42a5f5'; // Hellblau
+        const centerX = x + size / 2;
+        const centerY = y + size / 2;
+        
+        // Tropfen-Form
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY + 3, 6, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.fillRect(centerX - 2, centerY - 5, 4, 8);
+        
+        // Glanz-Effekt
+        this.ctx.fillStyle = '#90caf9';
+        this.ctx.fillRect(centerX - 1, centerY, 2, 2);
+    }
+
+    public drawNoWaterIndicator(x: number, y: number, noPower: boolean): void {
+        // Wenn kein Strom, dann wechselnd Blitz und Tropfen anzeigen
+        const blinkCycle = Math.floor(Date.now() / 500) % 2;
+        
+        if (noPower) {
+            // Wechsle zwischen Blitz und Tropfen
+            const showWater = Math.floor(Date.now() / 1000) % 2;
+            if (showWater === 0) {
+                this.drawNoPowerIndicator(x, y);
+                return;
+            }
+        }
+        
+        // Blinkender Wassertropfen (nur anzeigen wenn blink cycle aktiv)
+        if (blinkCycle === 0) return;
+        
+        const centerX = x + this.TILE_SIZE / 2;
+        const centerY = y + this.TILE_SIZE / 2;
+        
+        // Blauer Wassertropfen mit Glow
+        this.ctx.shadowBlur = 6;
+        this.ctx.shadowColor = '#42a5f5';
+        this.ctx.fillStyle = '#1e88e5';
+        
+        // Tropfen-Form
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY + 1, 3, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.fillRect(centerX - 1, centerY - 3, 2, 4);
         
         this.ctx.shadowBlur = 0;
     }

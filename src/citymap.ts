@@ -5,11 +5,13 @@ export class CityMap {
     private readonly width: number;
     private readonly height: number;
     public powerGrid: Set<string>;
+    public waterGrid: Set<string>;
 
     constructor(width: number, height: number) {
         this.width = width;
         this.height = height;
         this.powerGrid = new Set<string>();
+        this.waterGrid = new Set<string>();
         this.map = this.createEmptyMap();
     }
 
@@ -21,10 +23,12 @@ export class CityMap {
                 map[y][x] = {
                     type: TileType.EMPTY,
                     powered: false,
+                    watered: false,
                     development: 0,
                     population: 0,
                     variant: Math.floor(Math.random() * 5),  // 5 verschiedene Varianten (tree_1 bis tree_4 + grass_1)
                     powerLine: false,  // Keine Stromleitung zu Beginn
+                    waterLine: false,  // Keine Wasserleitung zu Beginn
                     traffic: 0  // Kein Verkehr zu Beginn
                 };
             }
@@ -91,6 +95,17 @@ export class CityMap {
     public hasPowerLine(x: number, y: number): boolean {
         if (!this.isValidPosition(x, y)) return false;
         return this.map[y][x].powerLine;
+    }
+
+    public setWaterLine(x: number, y: number, hasWaterLine: boolean): boolean {
+        if (!this.isValidPosition(x, y)) return false;
+        this.map[y][x].waterLine = hasWaterLine;
+        return true;
+    }
+
+    public hasWaterLine(x: number, y: number): boolean {
+        if (!this.isValidPosition(x, y)) return false;
+        return this.map[y][x].waterLine;
     }
 
     public isValidPosition(x: number, y: number): boolean {
@@ -160,7 +175,12 @@ export class CityMap {
                 const canConduct = tile.powerLine ||
                                   tile.type === TileType.RESIDENTIAL ||
                                   tile.type === TileType.COMMERCIAL ||
-                                  tile.type === TileType.INDUSTRIAL;
+                                  tile.type === TileType.INDUSTRIAL ||
+                                  tile.type === TileType.WATER_PUMP ||
+                                  tile.type === TileType.HOSPITAL ||
+                                  tile.type === TileType.POLICE ||
+                                  tile.type === TileType.SCHOOL ||
+                                  tile.type === TileType.LIBRARY;
 
                 if (canConduct) {
                     // Strom verteilen UND weiterleiten
@@ -185,6 +205,114 @@ export class CityMap {
             if (this.map[n.y][n.x].type === TileType.ROAD) return true;
         }
         return false;
+    }
+
+    public updateWaterGrid(): void {
+        this.waterGrid.clear();
+
+        // Alle Wasserpumpen finden (nur powered Pumpen funktionieren!)
+        // Für 2x2 Pumpen: Wenn mindestens ein Tile powered ist, funktioniert die ganze Pumpe
+        const waterSources: Position[] = [];
+        const processedPumps = new Set<string>();
+        
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                const tile = this.map[y][x];
+                tile.watered = false;
+                
+                if (tile.type === TileType.WATER_PUMP) {
+                    // Finde die obere linke Ecke der 2x2 Wasserpumpe
+                    let startX = x;
+                    let startY = y;
+                    
+                    // Nach links suchen (max 1 Schritt)
+                    if (x - 1 >= 0 && this.map[y][x - 1].type === TileType.WATER_PUMP) {
+                        startX = x - 1;
+                    }
+                    
+                    // Nach oben suchen (max 1 Schritt)
+                    if (y - 1 >= 0 && this.map[startY - 1][startX].type === TileType.WATER_PUMP) {
+                        startY = y - 1;
+                    }
+                    
+                    const pumpKey = `${startX},${startY}`;
+                    if (processedPumps.has(pumpKey)) continue;
+                    processedPumps.add(pumpKey);
+                    
+                    // Prüfe ob mindestens ein Tile der Pumpe powered ist
+                    let hasPower = false;
+                    for (let dy = 0; dy < 2; dy++) {
+                        for (let dx = 0; dx < 2; dx++) {
+                            if (this.isValidPosition(startX + dx, startY + dy)) {
+                                if (this.map[startY + dy][startX + dx].powered) {
+                                    hasPower = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (hasPower) break;
+                    }
+                    
+                    // Wenn Pumpe Strom hat, markiere alle 4 Tiles als Wasserquelle
+                    if (hasPower) {
+                        for (let dy = 0; dy < 2; dy++) {
+                            for (let dx = 0; dx < 2; dx++) {
+                                if (this.isValidPosition(startX + dx, startY + dy)) {
+                                    waterSources.push({ x: startX + dx, y: startY + dy });
+                                    this.map[startY + dy][startX + dx].watered = true;
+                                    this.waterGrid.add(`${startX + dx},${startY + dy}`);
+                                }
+                            }
+                        }
+                    }
+                } else if (tile.type === TileType.PARK) {
+                    // Parks benötigen kein Wasser
+                    tile.watered = true;
+                }
+            }
+        }
+
+        // Wasser durch Leitungen und direkte Nachbarschaft verteilen (Flood Fill)
+        const queue: Position[] = [...waterSources];
+        const visited = new Set<string>();
+
+        while (queue.length > 0) {
+            const pos = queue.shift()!;
+            const key = `${pos.x},${pos.y}`;
+
+            if (visited.has(key)) continue;
+            visited.add(key);
+
+            // Nachbarn prüfen
+            const neighbors: Position[] = [
+                { x: pos.x - 1, y: pos.y },
+                { x: pos.x + 1, y: pos.y },
+                { x: pos.x, y: pos.y - 1 },
+                { x: pos.x, y: pos.y + 1 }
+            ];
+
+            for (const n of neighbors) {
+                if (!this.isValidPosition(n.x, n.y)) continue;
+
+                const nKey = `${n.x},${n.y}`;
+                if (visited.has(nKey)) continue;
+
+                const tile = this.map[n.y][n.x];
+                
+                // Wasserleitungen UND Gebäude leiten Wasser weiter (blockweise)
+                const canConduct = tile.waterLine ||
+                                  tile.type === TileType.RESIDENTIAL ||
+                                  tile.type === TileType.COMMERCIAL ||
+                                  tile.type === TileType.INDUSTRIAL;
+
+                if (canConduct) {
+                    // Wasser verteilen UND weiterleiten
+                    tile.watered = true;
+                    this.waterGrid.add(nKey);
+                    queue.push(n);
+                }
+            }
+        }
     }
 
     public calculatePopulation(): number {

@@ -10,6 +10,7 @@ export class SimulationEngine {
 
     public simulate(happiness: number): number {
         this.cityMap.updatePowerGrid();
+        this.cityMap.updateWaterGrid();
 
         let monthlyIncome = 0;
 
@@ -30,6 +31,9 @@ export class SimulationEngine {
                         break;
                     case TileType.POWER_PLANT:
                         monthlyIncome -= 50; // Wartungskosten
+                        break;
+                    case TileType.WATER_PUMP:
+                        monthlyIncome -= 30; // Wartungskosten Wasserpumpe
                         break;
                 }
             }
@@ -57,12 +61,12 @@ export class SimulationEngine {
         }
         
         // Grundbevölkerung auch ohne Entwicklung
-        if (tile.population === 0 && hasRoad && tile.powered && happiness >= 30) {
+        if (tile.population === 0 && hasRoad && tile.powered && tile.watered && happiness >= 30) {
             tile.population = 10; // Startbevölkerung (nur wenn Zufriedenheit nicht zu niedrig)
         }
         
-        // Wachstum nur bei ausreichender Zufriedenheit
-        if (hasRoad && tile.powered && tile.development < 3 && happiness >= 50) {
+        // Wachstum nur bei ausreichender Zufriedenheit und Wasser
+        if (hasRoad && tile.powered && tile.watered && tile.development < 3 && happiness >= 50) {
             if (Math.random() < 0.05) {
                 tile.development++;
                 tile.population = 10 + tile.development * 50;
@@ -70,7 +74,7 @@ export class SimulationEngine {
         }
         
         // Bevölkerung wächst auch ohne Entwicklungssprünge (nur bei guter Zufriedenheit)
-        if (hasRoad && tile.powered && tile.population > 0 && tile.population < 10 + tile.development * 50 && happiness >= 40) {
+        if (hasRoad && tile.powered && tile.watered && tile.population > 0 && tile.population < 10 + tile.development * 50 && happiness >= 40) {
             if (Math.random() < 0.1) {
                 tile.population += Math.floor(Math.random() * 5) + 1;
             }
@@ -81,7 +85,7 @@ export class SimulationEngine {
 
     private simulateCommercial(x: number, y: number, tile: any): number {
         const hasRoad = this.cityMap.hasAdjacentRoad(x, y);
-        if (hasRoad && tile.powered && tile.development < 3) {
+        if (hasRoad && tile.powered && tile.watered && tile.development < 3) {
             if (Math.random() < 0.03) {
                 tile.development++;
             }
@@ -91,7 +95,7 @@ export class SimulationEngine {
 
     private simulateIndustrial(x: number, y: number, tile: any): number {
         const hasRoad = this.cityMap.hasAdjacentRoad(x, y);
-        if (hasRoad && tile.powered && tile.development < 3) {
+        if (hasRoad && tile.powered && tile.watered && tile.development < 3) {
             if (Math.random() < 0.04) {
                 tile.development++;
             }

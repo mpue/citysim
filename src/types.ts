@@ -11,16 +11,20 @@ export enum TileType {
     HOSPITAL = 8,
     POLICE = 9,
     SCHOOL = 10,
-    LIBRARY = 11
+    LIBRARY = 11,
+    WATER_PUMP = 12,
+    WATER_LINE = 13
 }
 
 export interface Tile {
     type: TileType;
     powered: boolean;
+    watered: boolean;  // Wasserversorgung
     development: number;
     population: number;
     variant: number;  // Gebäudevariante für visuelle Vielfalt
     powerLine: boolean;  // Stromleitung als Overlay
+    waterLine: boolean;  // Wasserleitung als Overlay
     traffic: number;  // Verkehrsdichte (0-100)
     trafficLight?: TrafficLightState;  // Ampelzustand an Kreuzungen
 }
@@ -66,7 +70,7 @@ export interface GameStats {
 }
 
 export type ToolType = 'select' | 'bulldozer' | 'residential' | 'commercial' | 'industrial' | 
-                       'road' | 'power' | 'powerline' | 'park' | 'hospital' | 'police' | 'school' | 'library';
+                       'road' | 'power' | 'powerline' | 'waterpump' | 'waterline' | 'park' | 'hospital' | 'police' | 'school' | 'library';
 
 export const TILE_COSTS: Record<TileType, number> = {
     [TileType.EMPTY]: 0,
@@ -80,5 +84,7 @@ export const TILE_COSTS: Record<TileType, number> = {
     [TileType.HOSPITAL]: 500,
     [TileType.POLICE]: 500,
     [TileType.SCHOOL]: 300,
-    [TileType.LIBRARY]: 400
+    [TileType.LIBRARY]: 400,
+    [TileType.WATER_PUMP]: 1500,
+    [TileType.WATER_LINE]: 5
 };
