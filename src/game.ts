@@ -1785,7 +1785,8 @@ export class Game {
         const needsPower = tile.type !== TileType.EMPTY && tile.type !== TileType.ROAD && 
                           tile.type !== TileType.PARK && !tile.powerLine;
         const needsWater = tile.type !== TileType.EMPTY && tile.type !== TileType.ROAD && 
-                          tile.type !== TileType.PARK && tile.type !== TileType.POWER_PLANT && !tile.waterLine;
+                          tile.type !== TileType.PARK && tile.type !== TileType.POWER_PLANT && 
+                          tile.type !== TileType.WATER_PUMP && !tile.waterLine;
         
         if (needsPower && !tile.powered && needsWater && !tile.watered) {
             // Beide fehlen: abwechselnd anzeigen
