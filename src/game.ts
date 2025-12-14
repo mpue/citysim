@@ -1639,7 +1639,7 @@ export class Game {
                 const isMainPowerPlant = (gridX === 0 || this.cityMap.getTile(gridX - 1, gridY)?.type !== TileType.POWER_PLANT) &&
                                          (gridY === 0 || this.cityMap.getTile(gridX, gridY - 1)?.type !== TileType.POWER_PLANT);
                 if (isMainPowerPlant) {
-                    this.renderer.drawPowerPlant(x, y);
+                    this.renderer.drawPowerPlant(x, y, tile.variant);
                 }
                 break;
             case TileType.PARK:

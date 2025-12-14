@@ -6,6 +6,21 @@ export class AmberRenderer {
     private houseIcons: HTMLImageElement[] = [];
     private commercialIcons: HTMLImageElement[] = [];
     private industrialIcons: HTMLImageElement[] = [];
+    
+    // Neue strukturierte Icon-Caches
+    private commercialBakeryIcons: HTMLImageElement[] = [];
+    private commercialBookstoreIcons: HTMLImageElement[] = [];
+    private commercialGroceryIcons: HTMLImageElement[] = [];
+    private commercialPharmacyIcons: HTMLImageElement[] = [];
+    
+    private industrialFactoriesIcons: HTMLImageElement[] = [];
+    private industrialStorageIcons: HTMLImageElement[] = [];
+    
+    private residentialAppartementsIcons: HTMLImageElement[] = [];
+    private residentialHousesIcons: HTMLImageElement[] = [];
+    private residentialSkyscraperIcons: HTMLImageElement[] = [];
+    
+    private powerPlantIcons: HTMLImageElement[] = [];
     private treeIcons: HTMLImageElement[] = [];
     private hospitalIcon: HTMLImageElement | null = null;
     private policeIcon: HTMLImageElement | null = null;
@@ -65,25 +80,74 @@ export class AmberRenderer {
     }
 
     private loadIcons(): void {
-        // Lade Wohngebäude-Icons
-        for (let i = 1; i <= 4; i++) {
+        // Lade Commercial Buildings - Bakery (49 Icons)
+        for (let i = 1; i <= 49; i++) {
             const img = new Image();
-            img.src = `icons/house_${i}.png`;
-            this.houseIcons.push(img);
+            img.src = `icons/buildings/commercial/bakery/${String(i).padStart(4, '0')}.png`;
+            this.commercialBakeryIcons.push(img);
         }
         
-        // Lade Gewerbe-Icons
-        for (let i = 1; i <= 4; i++) {
+        // Lade Commercial Buildings - Bookstore (48 Icons)
+        for (let i = 1; i <= 48; i++) {
             const img = new Image();
-            img.src = `icons/commercial_${i}.png`;
-            this.commercialIcons.push(img);
+            img.src = `icons/buildings/commercial/bookstore/${String(i).padStart(4, '0')}.png`;
+            this.commercialBookstoreIcons.push(img);
         }
         
-        // Lade Industrie-Icons
-        for (let i = 1; i <= 4; i++) {
+        // Lade Commercial Buildings - Grocery (17 Icons)
+        for (let i = 1; i <= 17; i++) {
             const img = new Image();
-            img.src = `icons/industrial_${i}.png`;
-            this.industrialIcons.push(img);
+            img.src = `icons/buildings/commercial/grocery/${String(i).padStart(4, '0')}.png`;
+            this.commercialGroceryIcons.push(img);
+        }
+        
+        // Lade Commercial Buildings - Pharmacy (48 Icons)
+        for (let i = 1; i <= 48; i++) {
+            const img = new Image();
+            img.src = `icons/buildings/commercial/pharmacy/${String(i).padStart(4, '0')}.png`;
+            this.commercialPharmacyIcons.push(img);
+        }
+        
+        // Lade Industrial Buildings - Factories (51 Icons)
+        for (let i = 1; i <= 51; i++) {
+            const img = new Image();
+            img.src = `icons/buildings/industrial/factories/${String(i).padStart(4, '0')}.png`;
+            this.industrialFactoriesIcons.push(img);
+        }
+        
+        // Lade Industrial Buildings - Storage (57 Icons)
+        for (let i = 1; i <= 57; i++) {
+            const img = new Image();
+            img.src = `icons/buildings/industrial/storage/${String(i).padStart(4, '0')}.png`;
+            this.industrialStorageIcons.push(img);
+        }
+        
+        // Lade Residential Buildings - Appartements (64 Icons)
+        for (let i = 1; i <= 64; i++) {
+            const img = new Image();
+            img.src = `icons/buildings/residential/appartements/${String(i).padStart(4, '0')}.png`;
+            this.residentialAppartementsIcons.push(img);
+        }
+        
+        // Lade Residential Buildings - Houses (27 Icons)
+        for (let i = 1; i <= 27; i++) {
+            const img = new Image();
+            img.src = `icons/buildings/residential/houses/${String(i).padStart(4, '0')}.png`;
+            this.residentialHousesIcons.push(img);
+        }
+        
+        // Lade Residential Buildings - Skyscraper (12 Icons)
+        for (let i = 1; i <= 12; i++) {
+            const img = new Image();
+            img.src = `icons/buildings/residential/skyscraper/${String(i).padStart(4, '0')}.png`;
+            this.residentialSkyscraperIcons.push(img);
+        }
+        
+        // Lade Power Plants (7 Icons)
+        for (let i = 1; i <= 7; i++) {
+            const img = new Image();
+            img.src = `icons/buildings/power/${String(i).padStart(4, '0')}.png`;
+            this.powerPlantIcons.push(img);
         }
         
         // Lade Baum-Icons
@@ -113,15 +177,22 @@ export class AmberRenderer {
         this.libraryIcon = new Image();
         this.libraryIcon.src = 'icons/library.png';
         
-        // Lade Powerplant Icon
+        // Lade Powerplant Icon (fallback für altes Format)
         this.powerplantIcon = new Image();
         this.powerplantIcon.src = 'icons/powerplant.png';
         
         // Warte bis alle Icons geladen sind
         const allIcons = [
-            ...this.houseIcons, 
-            ...this.commercialIcons, 
-            ...this.industrialIcons,
+            ...this.commercialBakeryIcons,
+            ...this.commercialBookstoreIcons,
+            ...this.commercialGroceryIcons,
+            ...this.commercialPharmacyIcons,
+            ...this.industrialFactoriesIcons,
+            ...this.industrialStorageIcons,
+            ...this.residentialAppartementsIcons,
+            ...this.residentialHousesIcons,
+            ...this.residentialSkyscraperIcons,
+            ...this.powerPlantIcons,
             ...this.treeIcons,
             this.hospitalIcon,
             this.policeIcon,
@@ -193,18 +264,34 @@ export class AmberRenderer {
 
     public drawResidential(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
         // Icons nur bei bebauten Gebieten (development > 0)
-        if (development > 0 && this.iconsLoaded && variant >= 0 && variant < 4) {
-            const icon = this.houseIcons[variant];
-            if (icon.complete) {
-                // Zeichne Icon zentriert im Tile
-                this.ctx.drawImage(icon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+        if (development > 0 && this.iconsLoaded) {
+            let iconArray: HTMLImageElement[] = [];
+            
+            // Wähle Icon-Set basierend auf Entwicklungsstufe
+            if (development <= 1) {
+                iconArray = this.residentialHousesIcons;
+            } else if (development <= 2) {
+                iconArray = this.residentialAppartementsIcons;
+            } else {
+                iconArray = this.residentialSkyscraperIcons;
+            }
+            
+            // Wähle zufälliges Icon aus dem Array basierend auf variant
+            if (iconArray.length > 0) {
+                const iconIndex = variant % iconArray.length;
+                const icon = iconArray[iconIndex];
                 
-                // Zeige unpowered mit dunklem Overlay
-                if (!powered) {
-                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                    this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+                if (icon && icon.complete) {
+                    // Zeichne Icon zentriert im Tile
+                    this.ctx.drawImage(icon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+                    
+                    // Zeige unpowered mit dunklem Overlay
+                    if (!powered) {
+                        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                        this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+                    }
+                    return;
                 }
-                return;
             }
         }
         
@@ -243,18 +330,34 @@ export class AmberRenderer {
 
     public drawCommercial(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
         // Icons nur bei bebauten Gebieten (development > 0)
-        if (development > 0 && this.iconsLoaded && variant >= 0 && variant < 4) {
-            const icon = this.commercialIcons[variant];
-            if (icon.complete) {
-                // Zeichne Icon zentriert im Tile
-                this.ctx.drawImage(icon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+        if (development > 0 && this.iconsLoaded) {
+            // Wähle Icon-Set basierend auf Variante (zyklisch durch die 4 Typen)
+            const commercialTypes = [
+                this.commercialBakeryIcons,
+                this.commercialBookstoreIcons,
+                this.commercialGroceryIcons,
+                this.commercialPharmacyIcons
+            ];
+            
+            const typeIndex = variant % commercialTypes.length;
+            const iconArray = commercialTypes[typeIndex];
+            
+            // Wähle Icon aus dem Array (zufällig basierend auf Position)
+            if (iconArray.length > 0) {
+                const iconIndex = Math.floor(variant / commercialTypes.length) % iconArray.length;
+                const icon = iconArray[iconIndex];
                 
-                // Zeige unpowered mit dunklem Overlay
-                if (!powered) {
-                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                    this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+                if (icon && icon.complete) {
+                    // Zeichne Icon zentriert im Tile
+                    this.ctx.drawImage(icon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+                    
+                    // Zeige unpowered mit dunklem Overlay
+                    if (!powered) {
+                        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                        this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+                    }
+                    return;
                 }
-                return;
             }
         }
         
@@ -292,18 +395,26 @@ export class AmberRenderer {
 
     public drawIndustrial(x: number, y: number, development: number, powered: boolean, variant: number = 0): void {
         // Icons nur bei bebauten Gebieten (development > 0)
-        if (development > 0 && this.iconsLoaded && variant >= 0 && variant < 4) {
-            const icon = this.industrialIcons[variant];
-            if (icon.complete) {
-                // Zeichne Icon zentriert im Tile
-                this.ctx.drawImage(icon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+        if (development > 0 && this.iconsLoaded) {
+            // Wechsle zwischen Factories und Storage
+            const iconArray = (variant % 2 === 0) ? this.industrialFactoriesIcons : this.industrialStorageIcons;
+            
+            // Wähle Icon aus dem Array
+            if (iconArray.length > 0) {
+                const iconIndex = Math.floor(variant / 2) % iconArray.length;
+                const icon = iconArray[iconIndex];
                 
-                // Zeige unpowered mit dunklem Overlay
-                if (!powered) {
-                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                    this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+                if (icon && icon.complete) {
+                    // Zeichne Icon zentriert im Tile
+                    this.ctx.drawImage(icon, x, y, this.TILE_SIZE, this.TILE_SIZE);
+                
+                    // Zeige unpowered mit dunklem Overlay
+                    if (!powered) {
+                        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                        this.ctx.fillRect(x, y, this.TILE_SIZE, this.TILE_SIZE);
+                    }
+                    return;
                 }
-                return;
             }
         }
         
@@ -630,10 +741,21 @@ export class AmberRenderer {
         }
     }
 
-    public drawPowerPlant(x: number, y: number): void {
+    public drawPowerPlant(x: number, y: number, variant: number = 0): void {
         const size = this.TILE_SIZE * 3;
         
-        // Versuche Icon zu rendern, falls geladen
+        // Versuche Icon aus neuem Power-Ordner zu rendern
+        if (this.iconsLoaded && this.powerPlantIcons.length > 0) {
+            const iconIndex = variant % this.powerPlantIcons.length;
+            const icon = this.powerPlantIcons[iconIndex];
+            
+            if (icon && icon.complete) {
+                this.ctx.drawImage(icon, x, y, size, size);
+                return;
+            }
+        }
+        
+        // Fallback: Versuche altes Powerplant Icon
         if (this.iconsLoaded && this.powerplantIcon && this.powerplantIcon.complete) {
             this.ctx.drawImage(this.powerplantIcon, x, y, size, size);
             return;
