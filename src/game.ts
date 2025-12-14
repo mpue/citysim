@@ -43,7 +43,7 @@ export class Game {
     private readonly MAP_HEIGHT = 64;
     private readonly DEFAULT_SIMULATION_SPEED = 2000; // ms
     private readonly MIN_ZOOM = 0.5;
-    private readonly MAX_ZOOM = 3.0;
+    private readonly MAX_ZOOM = 5.0;
     private readonly GRAPH_HISTORY_YEARS = 10;
 
     constructor(canvasId: string) {

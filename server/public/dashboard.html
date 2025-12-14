@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CitySim - Dashboard</title>
+    <link rel="stylesheet" href="/static/dashboard-styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">🏙️ CitySim</div>
+        <div class="nav-menu">
+            <a href="/dashboard" class="nav-link active">Dashboard</a>
+            <a href="/game" class="nav-link">Spiel starten</a>
+            <a href="/profile" class="nav-link">Profil</a>
+            <a href="#" class="nav-link" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" class="nav-link" id="logoutLink">Abmelden</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="welcome-section">
+            <h1>Willkommen, <span id="displayName">Spieler</span>!</h1>
+            <p>Bereit, deine Stadt zu bauen?</p>
+        </div>
+
+        <div class="quick-actions">
+            <a href="/game" class="action-card primary">
+                <div class="action-icon">🎮</div>
+                <div class="action-content">
+                    <h3>Spiel starten</h3>
+                    <p>Baue deine Stadt</p>
+                </div>
+            </a>
+
+            <div class="action-card" onclick="document.getElementById('saveModal').style.display='block'">
+                <div class="action-icon">💾</div>
+                <div class="action-content">
+                    <h3>Spielstände</h3>
+                    <p id="saveCount">0 Spielstände</p>
+                </div>
+            </div>
+
+            <a href="/profile" class="action-card">
+                <div class="action-icon">👤</div>
+                <div class="action-content">
+                    <h3>Profil</h3>
+                    <p>Einstellungen verwalten</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="stats-section">
+            <h2>Deine Statistiken</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🏘️</div>
+                    <div class="stat-value" id="citiesCreated">0</div>
+                    <div class="stat-label">Städte erstellt</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value" id="totalPopulation">0</div>
+                    <div class="stat-label">Gesamtbevölkerung</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-value" id="highestPopulation">0</div>
+                    <div class="stat-label">Höchste Bevölkerung</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-value" id="playtime">0h</div>
+                    <div class="stat-label">Spielzeit</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="recent-saves">
+            <h2>Letzte Spielstände</h2>
+            <div id="savesList" class="saves-list">
+                <p class="empty-state">Keine Spielstände vorhanden</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Modal -->
+    <div id="saveModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('saveModal').style.display='none'">&times;</span>
+            <h2>Deine Spielstände</h2>
+            <div id="allSavesList" class="saves-list-modal"></div>
+        </div>
+    </div>
+
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>

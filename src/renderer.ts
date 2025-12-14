@@ -28,6 +28,7 @@ export class AmberRenderer {
     private libraryIcon: HTMLImageElement | null = null;
     private powerplantIcon: HTMLImageElement | null = null;
     private waterpumpIcon: HTMLImageElement | null = null;
+    private carIcon: HTMLImageElement | null = null;
     private iconsLoaded: boolean = false;
     
     // Moderne Farbpalette
@@ -186,6 +187,10 @@ export class AmberRenderer {
         this.waterpumpIcon = new Image();
         this.waterpumpIcon.src = 'icons/commands/waterpunp.png';
         
+        // Lade Car Icon
+        this.carIcon = new Image();
+        this.carIcon.src = 'icons/car.png';
+        
         // Warte bis alle Icons geladen sind
         const allIcons = [
             ...this.commercialBakeryIcons,
@@ -204,7 +209,8 @@ export class AmberRenderer {
             this.schoolIcon,
             this.libraryIcon,
             this.powerplantIcon,
-            this.waterpumpIcon
+            this.waterpumpIcon,
+            this.carIcon
         ];
         let loadedCount = 0;
         allIcons.forEach(img => {
@@ -735,15 +741,55 @@ export class AmberRenderer {
     }
 
     private drawVehicle(x: number, y: number, direction: string, color: string, lane: 'left' | 'right'): void {
-        const size = 3;
-        this.ctx.fillStyle = color;
-        
-        // Position bereits basierend auf lane berechnet (aus spawnVehicle)
-        // Einfaches Rechteck als Fahrzeug
-        if (direction === 'north' || direction === 'south') {
-            this.ctx.fillRect(x - 1, y - size/2, 2, size);
+        // Verwende car.png Icon wenn geladen, sonst Fallback
+        if (this.iconsLoaded && this.carIcon && this.carIcon.complete) {
+            const size = 8; // Größe des Auto-Icons
+            
+            // Speichere aktuellen Zustand
+            this.ctx.save();
+            
+            // Verschiebe zum Mittelpunkt des Autos
+            this.ctx.translate(x, y);
+            
+            // Rotiere je nach Richtung (car.png zeigt nach oben)
+            switch(direction) {
+                case 'north':
+                    // 0° - keine Rotation nötig
+                    break;
+                case 'south':
+                    this.ctx.rotate(Math.PI); // 180°
+                    break;
+                case 'east':
+                    this.ctx.rotate(Math.PI / 2); // 90°
+                    break;
+                case 'west':
+                    this.ctx.rotate(-Math.PI / 2); // -90°
+                    break;
+            }
+            
+            // Zeichne das Icon
+            this.ctx.drawImage(this.carIcon, -size/2, -size/2, size, size);
+            
+            // Färbe das Auto mit multiply blend mode für bessere Einfärbung
+            this.ctx.globalCompositeOperation = 'darken';
+            this.ctx.fillStyle = color;
+            this.ctx.fillRect(-size/2, -size/2, size, size);
+            
+            // Setze blend mode zurück
+            this.ctx.globalCompositeOperation = 'source-over';
+            
+            // Stelle den ursprünglichen Zustand wieder her
+            this.ctx.restore();
         } else {
-            this.ctx.fillRect(x - size/2, y - 1, size, 2);
+            // Fallback: Einfaches Rechteck als Fahrzeug
+            const size = 3;
+            this.ctx.fillStyle = color;
+            
+            if (direction === 'north' || direction === 'south') {
+                this.ctx.fillRect(x - 1, y - size/2, 2, size);
+            } else {
+                this.ctx.fillRect(x - size/2, y - 1, size, 2);
+            }
         }
     }
 

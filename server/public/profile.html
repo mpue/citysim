@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CitySim - Profil</title>
+    <link rel="stylesheet" href="/static/dashboard-styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">🏙️ CitySim</div>
+        <div class="nav-menu">
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/game" class="nav-link">Spiel starten</a>
+            <a href="/profile" class="nav-link active">Profil</a>
+            <a href="#" class="nav-link" id="adminLink" style="display:none;">Admin</a>
+            <a href="#" class="nav-link" id="logoutLink">Abmelden</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="welcome-section">
+            <h1>Mein Profil</h1>
+            <p>Verwalte deine Account-Einstellungen</p>
+        </div>
+
+        <div id="message" style="display:none; padding:15px; margin-bottom:20px; border-radius:10px;"></div>
+
+        <div class="stats-section">
+            <h2>Account-Informationen</h2>
+            <form id="profileForm">
+                <div style="display:grid; gap:20px; max-width:600px;">
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:500;">Benutzername</label>
+                        <input type="text" id="username" readonly style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px; background:#f5f5f5;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:500;">E-Mail-Adresse</label>
+                        <input type="email" id="email" required style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:500;">Anzeigename</label>
+                        <input type="text" id="displayName" style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:500;">Rolle</label>
+                        <input type="text" id="role" readonly style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px; background:#f5f5f5;">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Profil aktualisieren</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="stats-section">
+            <h2>Passwort ändern</h2>
+            <form id="passwordForm">
+                <div style="display:grid; gap:20px; max-width:600px;">
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:500;">Aktuelles Passwort</label>
+                        <input type="password" id="currentPassword" required style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:500;">Neues Passwort</label>
+                        <input type="password" id="newPassword" required minlength="6" style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:500;">Neues Passwort bestätigen</label>
+                        <input type="password" id="confirmPassword" required style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:8px;">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Passwort ändern</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="stats-section">
+            <h2>Account-Details</h2>
+            <div style="display:grid; gap:15px;">
+                <div style="display:flex; justify-content:space-between; padding:12px; background:#f8f9fa; border-radius:8px;">
+                    <strong>Registriert am:</strong>
+                    <span id="createdAt">-</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:12px; background:#f8f9fa; border-radius:8px;">
+                    <strong>Letzter Login:</strong>
+                    <span id="lastLogin">-</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:12px; background:#f8f9fa; border-radius:8px;">
+                    <strong>Account-ID:</strong>
+                    <span id="userId">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        async function loadProfile() {
+            try {
+                const response = await fetch('/api/user/me');
+                const data = await response.json();
+
+                if (data.success) {
+                    currentUser = data.user;
+                    document.getElementById('username').value = currentUser.username;
+                    document.getElementById('email').value = currentUser.email;
+                    document.getElementById('displayName').value = currentUser.displayName || '';
+                    document.getElementById('role').value = currentUser.role === 'admin' ? 'Administrator' : 'Spieler';
+                    document.getElementById('userId').textContent = currentUser.id;
+                    document.getElementById('createdAt').textContent = new Date(currentUser.createdAt).toLocaleString('de-DE');
+                    document.getElementById('lastLogin').textContent = currentUser.lastLogin ? new Date(currentUser.lastLogin).toLocaleString('de-DE') : 'Nie';
+
+                    if (currentUser.role === 'admin') {
+                        document.getElementById('adminLink').style.display = 'block';
+                        document.getElementById('adminLink').href = '/admin';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        }
+
+        function showMessage(text, type = 'success') {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.style.display = 'block';
+            message.style.background = type === 'success' ? '#d4edda' : '#f8d7da';
+            message.style.color = type === 'success' ? '#155724' : '#721c24';
+            message.style.border = `1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'}`;
+
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 5000);
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const displayName = document.getElementById('displayName').value;
+
+            try {
+                const response = await fetch('/api/user/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, displayName })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showMessage('✓ Profil erfolgreich aktualisiert');
+                    loadProfile();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Fehler beim Aktualisieren', 'error');
+            }
+        });
+
+        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                showMessage('Passwörter stimmen nicht überein', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showMessage('✓ Passwort erfolgreich geändert');
+                    document.getElementById('passwordForm').reset();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Fehler beim Ändern des Passworts', 'error');
+            }
+        });
+
+        document.getElementById('logoutLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (confirm('Möchten Sie sich wirklich abmelden?')) {
+                try {
+                    await fetch('/api/logout', { method: 'POST' });
+                    window.location.href = '/login';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            }
+        });
+
+        loadProfile();
+    </script>
+</body>
+</html>
