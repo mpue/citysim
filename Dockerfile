@@ -21,8 +21,10 @@ COPY src ./src
 COPY tsconfig.json ./
 COPY build-minify.js ./
 
-# Kopiere Server Code
-COPY server ./server
+# Kopiere Server Code (explizit alle benötigten Dateien)
+COPY server/server.js ./server/
+COPY server/database-json.js ./server/
+COPY server/public ./server/public
 
 # Kopiere Assets
 COPY icons ./icons
