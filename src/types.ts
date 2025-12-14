@@ -44,6 +44,7 @@ export interface Vehicle {
     tileY: number;
     direction: 'north' | 'south' | 'east' | 'west';
     speed: number;
+    targetSpeed: number;  // Zielgeschwindigkeit für sanftes Beschleunigen/Bremsen
     color: string;
     lane: 'left' | 'right';  // Fahrspur (rechts = rechte Fahrbahn)
     stopped: boolean;  // Ob Fahrzeug an Ampel wartet
@@ -52,6 +53,7 @@ export interface Vehicle {
     turnFrom?: 'north' | 'south' | 'east' | 'west';  // Ursprungsrichtung
     turnStartX?: number;  // Startposition X der Kurve
     turnStartY?: number;  // Startposition Y der Kurve
+    offRoadCounter?: number;  // Zähler wie oft Fahrzeug nicht auf Straße ist
 }
 
 export interface Position {

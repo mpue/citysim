@@ -1641,6 +1641,9 @@ export class Game {
         ctx.translate(this.offsetX, this.offsetY);
         ctx.scale(this.zoom, this.zoom);
 
+        // Gitter ZUERST zeichnen (unter allen Gebäuden)
+        this.renderer.drawGrid(this.MAP_WIDTH, this.MAP_HEIGHT);
+
         // Alle Kacheln zeichnen
         const map = this.cityMap.getAllTiles();
         for (let y = 0; y < this.MAP_HEIGHT; y++) {
@@ -1668,9 +1671,6 @@ export class Game {
                 this.renderer.highlightTile(this.selectedTile.x, this.selectedTile.y);
             }
         }
-
-        // Gitter zeichnen
-        this.renderer.drawGrid(this.MAP_WIDTH, this.MAP_HEIGHT);
         
         // Drag-Rechteck zeichnen
         if (this.isDragging && this.dragStartPos && this.dragEndPos && 

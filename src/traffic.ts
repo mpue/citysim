@@ -55,8 +55,9 @@ export class TrafficManager {
                     
                     tile.traffic = Math.min(100, traffic);
                     
-                    // Fahrzeuge basierend auf Verkehrsdichte erstellen (höhere Spawn-Rate)
-                    if (tile.traffic > 20 && Math.random() < 0.3) {
+                    // Fahrzeuge basierend auf Verkehrsdichte erstellen
+                    // Geringere Wahrscheinlichkeit für gleichmäßigere Verteilung
+                    if (tile.traffic > 20 && Math.random() < 0.05) {
                         this.spawnVehicle(x, y);
                     }
                 }
@@ -71,21 +72,16 @@ export class TrafficManager {
         
         const direction = directions[Math.floor(Math.random() * directions.length)];
         
-        // Rechtsverkehr: Spur basierend auf Richtung
-        // Nord/Süd: Nord fährt rechts (right), Süd fährt links (left)
-        // Ost/West: Ost fährt unten (right), West fährt oben (left)
         let lane: 'left' | 'right';
         if (direction === 'north' || direction === 'east') {
-            lane = 'right';  // Rechte Fahrbahn
+            lane = 'right';
         } else {
-            lane = 'left';   // Linke Fahrbahn (Gegenverkehr)
+            lane = 'left';
         }
         
-        // Startposition basierend auf Richtung und Fahrspur
         let startX = tileX * tileSize + tileSize / 2;
         let startY = tileY * tileSize + tileSize / 2;
         
-        // Offset für Fahrspuren (3.5 Pixel vom Zentrum)
         const laneOffset = 3.5;
         if (direction === 'north' || direction === 'south') {
             startX += lane === 'right' ? laneOffset : -laneOffset;
@@ -93,13 +89,15 @@ export class TrafficManager {
             startY += lane === 'right' ? laneOffset : -laneOffset;
         }
         
+        const baseSpeed = 1.0 + Math.random() * 0.5;  // 1.0-1.5 für flüssigeren Verkehr
         const vehicle: Vehicle = {
             tileX,
             tileY,
             x: startX,
             y: startY,
             direction,
-            speed: 0.5 + Math.random() * 1.5,  // Varianz: 0.5-2.0 Pixel/Frame (langsam bis schnell)
+            speed: baseSpeed,
+            targetSpeed: baseSpeed,
             color: colors[Math.floor(Math.random() * colors.length)],
             lane,
             stopped: false,
@@ -109,8 +107,7 @@ export class TrafficManager {
         
         this.vehicles.push(vehicle);
         
-        // Maximale Anzahl Fahrzeuge begrenzen (erhöht für mehr Verkehr)
-        if (this.vehicles.length > 200) {
+        if (this.vehicles.length > 250) {
             this.vehicles.shift();
         }
     }
@@ -128,96 +125,65 @@ export class TrafficManager {
             // Aktuelles Tile prüfen
             const currentTile = map[vehicle.tileY]?.[vehicle.tileX];
             
-            // Ampelstatus prüfen
+            // Zielgeschwindigkeit zurücksetzen (wird basierend auf Bedingungen angepasst)
+            vehicle.targetSpeed = vehicle.speed;
             vehicle.stopped = false;
+            
+            // Ampelstatus prüfen
             if (currentTile?.trafficLight) {
                 const isNorthSouth = vehicle.direction === 'north' || vehicle.direction === 'south';
                 const isRedForMe = (currentTile.trafficLight === 1 && isNorthSouth) ||  // RED_NS
                                    (currentTile.trafficLight === 2 && !isNorthSouth);   // RED_EW
                 
                 if (isRedForMe) {
-                    vehicle.stopped = true;
+                    vehicle.targetSpeed = 0;
+                    vehicle.stopped = vehicle.speed < 0.1;  // Nur als gestoppt markieren wenn fast steht
                 }
             }
             
-            // Kollisionserkennung: Prüfe ob Fahrzeug vor uns ist
+            // Kollisionserkennung: Passe Geschwindigkeit an Fahrzeug vor uns an
             if (!vehicle.stopped) {
-                const vehicleAhead = this.checkVehicleAhead(vehicle, i);
-                if (vehicleAhead) {
-                    vehicle.stopped = true;
+                const result = this.checkVehicleAhead(vehicle, i);
+                if (result) {
+                    // Sanft bremsen basierend auf Abstand
+                    if (result.distance < 12) {
+                        vehicle.targetSpeed = Math.max(0, result.other.speed * 0.7);
+                    } else if (result.distance < 20) {
+                        vehicle.targetSpeed = result.other.speed;
+                    }
+                    
+                    if (result.distance < 6) {
+                        vehicle.stopped = true;
+                    }
                 }
             }
             
-            // Fahrzeug nur bewegen wenn nicht gestoppt
-            if (!vehicle.stopped) {
+            // Sanft zur Zielgeschwindigkeit beschleunigen/bremsen
+            const acceleration = 0.15 * speedMultiplier;  // Beschleunigung
+            if (vehicle.speed < vehicle.targetSpeed) {
+                vehicle.speed = Math.min(vehicle.targetSpeed, vehicle.speed + acceleration);
+            } else if (vehicle.speed > vehicle.targetSpeed) {
+                vehicle.speed = Math.max(vehicle.targetSpeed, vehicle.speed - acceleration * 2);  // Schneller bremsen als beschleunigen
+            }
+            
+            // Fahrzeug nur bewegen wenn Geschwindigkeit > 0
+            if (vehicle.speed > 0.05) {
                 const moveSpeed = vehicle.speed * speedMultiplier;
                 
-                // Wenn Fahrzeug gerade abbiegt, nutze Kurven-Animation
-                if (vehicle.turning && vehicle.turnProgress !== undefined && 
-                    vehicle.turnFrom && vehicle.turnStartX !== undefined && vehicle.turnStartY !== undefined) {
-                    
-                    // Erhöhe Kurven-Fortschritt
-                    vehicle.turnProgress += moveSpeed / 12; // Kurve über ~12 Pixel
-                    
-                    if (vehicle.turnProgress >= 1) {
-                        // Kurve abgeschlossen
-                        vehicle.turning = false;
-                        vehicle.turnProgress = 0;
-                        
-                        // Setze finale Position
-                        const laneOffset = 3.5;
-                        const centerX = vehicle.tileX * tileSize + tileSize / 2;
-                        const centerY = vehicle.tileY * tileSize + tileSize / 2;
-                        
-                        if (vehicle.direction === 'north' || vehicle.direction === 'south') {
-                            vehicle.x = centerX + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
-                        } else {
-                            vehicle.y = centerY + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
-                        }
-                    } else {
-                        // Berechne Kurven-Position (Bezier-Kurve)
-                        const t = vehicle.turnProgress;
-                        const laneOffset = 3.5;
-                        
-                        // Start- und Endpositionen
-                        const startX = vehicle.turnStartX;
-                        const startY = vehicle.turnStartY;
-                        
-                        const centerX = vehicle.tileX * tileSize + tileSize / 2;
-                        const centerY = vehicle.tileY * tileSize + tileSize / 2;
-                        
-                        let endX = centerX;
-                        let endY = centerY;
-                        if (vehicle.direction === 'north' || vehicle.direction === 'south') {
-                            endX = centerX + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
-                        } else {
-                            endY = centerY + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
-                        }
-                        
-                        // Kontrollpunkt für sanfte Kurve
-                        const ctrlX = (startX + endX) / 2;
-                        const ctrlY = (startY + endY) / 2;
-                        
-                        // Quadratische Bezier-Kurve
-                        vehicle.x = (1-t)*(1-t)*startX + 2*(1-t)*t*ctrlX + t*t*endX;
-                        vehicle.y = (1-t)*(1-t)*startY + 2*(1-t)*t*ctrlY + t*t*endY;
-                    }
-                } else {
-                    // Normale Bewegung
-                    switch (vehicle.direction) {
-                        case 'north':
-                            vehicle.y -= moveSpeed;
-                            break;
-                        case 'south':
-                            vehicle.y += moveSpeed;
-                            break;
-                        case 'east':
-                            vehicle.x += moveSpeed;
-                            break;
-                        case 'west':
-                            vehicle.x -= moveSpeed;
-                            break;
-                    }
+                // Normale Bewegung - keine komplexe Kurven-Animation
+                switch (vehicle.direction) {
+                    case 'north':
+                        vehicle.y -= moveSpeed;
+                        break;
+                    case 'south':
+                        vehicle.y += moveSpeed;
+                        break;
+                    case 'east':
+                        vehicle.x += moveSpeed;
+                        break;
+                    case 'west':
+                        vehicle.x -= moveSpeed;
+                        break;
                 }
             }
             
@@ -225,29 +191,37 @@ export class TrafficManager {
             const newTileX = Math.floor(vehicle.x / tileSize);
             const newTileY = Math.floor(vehicle.y / tileSize);
             
-            // Prüfe ob Fahrzeug außerhalb der Karte ist
+            // Prüfe ob Fahrzeug außerhalb der Karte ist - dann löschen
             if (newTileX < 0 || newTileX >= this.MAP_WIDTH ||
                 newTileY < 0 || newTileY >= this.MAP_HEIGHT) {
                 this.vehicles.splice(i, 1);
                 continue;
             }
             
-            // Wenn Fahrzeug Tile-Grenze überschreitet, prüfe ob abbiegen nötig
+            // Wenn Fahrzeug Tile-Grenze überschreitet
             if (newTileX !== vehicle.tileX || newTileY !== vehicle.tileY) {
-                // Prüfe ob neues Tile eine Straße ist
-                const newTile = map[newTileY][newTileX];
-                if (newTile.type !== TileType.ROAD) {
-                    // Nicht auf Straße - entfernen
-                    this.vehicles.splice(i, 1);
-                    continue;
-                }
-                
                 vehicle.tileX = newTileX;
                 vehicle.tileY = newTileY;
                 
-                // Neue Richtung wählen basierend auf Verbindungen
-                const connections = getRoadConnections(vehicle.tileX, vehicle.tileY);
-                this.updateVehicleDirection(vehicle, connections);
+                // Prüfe ob aktuelles Tile eine Straße ist
+                const currentTile = map[vehicle.tileY][vehicle.tileX];
+                if (currentTile.type === TileType.ROAD) {
+                    // Neue Richtung wählen basierend auf Verbindungen
+                    const connections = getRoadConnections(vehicle.tileX, vehicle.tileY);
+                    this.updateVehicleDirection(vehicle, connections);
+                } else {
+                    // Nicht auf Straße, aber gib eine Chance zur Korrektur
+                    // Lösche nur nach mehreren Frames
+                    if (!vehicle.offRoadCounter) vehicle.offRoadCounter = 0;
+                    vehicle.offRoadCounter++;
+                    if (vehicle.offRoadCounter > 2) {
+                        this.vehicles.splice(i, 1);
+                        continue;
+                    }
+                }
+            } else {
+                // Auf Straße, Counter zurücksetzen
+                vehicle.offRoadCounter = 0;
             }
         }
     }
@@ -255,7 +229,6 @@ export class TrafficManager {
     private updateVehicleDirection(vehicle: Vehicle, connections: { north: boolean, east: boolean, south: boolean, west: boolean }): void {
         const possibleDirections: Array<'north' | 'south' | 'east' | 'west'> = [];
         const tileSize = this.renderer.getTileSize();
-        const laneOffset = 3.5;
         
         // Sammle mögliche Richtungen (nicht zurück)
         if (connections.north && vehicle.direction !== 'south') possibleDirections.push('north');
@@ -263,23 +236,32 @@ export class TrafficManager {
         if (connections.east && vehicle.direction !== 'west') possibleDirections.push('east');
         if (connections.west && vehicle.direction !== 'east') possibleDirections.push('west');
         
+        // Wenn keine möglichen Richtungen, nichts ändern
+        if (possibleDirections.length === 0) {
+            return;
+        }
+        
         const oldDirection = vehicle.direction;
         
         // Wenn nur eine Möglichkeit: gehe diese Richtung
         if (possibleDirections.length === 1) {
             vehicle.direction = possibleDirections[0];
         }
-        // Wenn mehrere Möglichkeiten: bevorzuge geradeaus, sonst zufällig abbiegen
+        // Wenn mehrere Möglichkeiten: bevorzuge geradeaus
         else if (possibleDirections.length > 1) {
             // Versuche geradeaus zu bleiben
-            if (!possibleDirections.includes(vehicle.direction)) {
-                // Muss abbiegen - wähle zufällige neue Richtung
+            if (possibleDirections.includes(vehicle.direction)) {
+                // Bleib geradeaus (oder biege mit 25% Chance ab)
+                if (Math.random() < 0.25) {
+                    vehicle.direction = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
+                }
+            } else {
+                // Muss abbiegen
                 vehicle.direction = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
             }
-            // Ansonsten geradeaus weiterfahren
         }
         
-        // Wenn Richtung geändert wurde, starte Kurven-Animation
+        // Wenn Richtung geändert wurde, passe Spur und Position an
         if (oldDirection !== vehicle.direction) {
             // Rechtsverkehr: Spur basierend auf neue Richtung
             if (vehicle.direction === 'north' || vehicle.direction === 'east') {
@@ -288,19 +270,25 @@ export class TrafficManager {
                 vehicle.lane = 'left';
             }
             
-            // Starte Kurven-Animation
-            vehicle.turning = true;
-            vehicle.turnProgress = 0;
-            vehicle.turnFrom = oldDirection;
-            vehicle.turnStartX = vehicle.x;
-            vehicle.turnStartY = vehicle.y;
+            // Setze Position auf korrekte Spur
+            const laneOffset = 3.5;
+            const centerX = vehicle.tileX * tileSize + tileSize / 2;
+            const centerY = vehicle.tileY * tileSize + tileSize / 2;
+            
+            if (vehicle.direction === 'north' || vehicle.direction === 'south') {
+                vehicle.x = centerX + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
+            } else {
+                vehicle.y = centerY + (vehicle.lane === 'right' ? laneOffset : -laneOffset);
+            }
         }
     }
 
-    private checkVehicleAhead(vehicle: Vehicle, currentIndex: number): Vehicle | null {
-        const safeDistance = 8; // Mindestabstand in Pixeln
+    private checkVehicleAhead(vehicle: Vehicle, currentIndex: number): { other: Vehicle, distance: number } | null {
+        const lookAheadDistance = 30; // Vorausschau-Distanz in Pixeln
+        let closestVehicle: Vehicle | null = null;
+        let closestDistance = Infinity;
         
-        // Prüfe alle anderen Fahrzeuge
+        // Prüfe nur Fahrzeuge in der Nähe für bessere Performance
         for (let i = 0; i < this.vehicles.length; i++) {
             if (i === currentIndex) continue; // Nicht sich selbst prüfen
             
@@ -309,6 +297,13 @@ export class TrafficManager {
             // Nur Fahrzeuge in gleicher Richtung und Spur prüfen
             if (other.direction !== vehicle.direction || other.lane !== vehicle.lane) {
                 continue;
+            }
+            
+            // Schnelle Grob-Prüfung: Ist anderes Fahrzeug in der Nähe?
+            const dx = Math.abs(other.x - vehicle.x);
+            const dy = Math.abs(other.y - vehicle.y);
+            if (dx + dy > lookAheadDistance) {
+                continue;  // Zu weit weg
             }
             
             // Berechne ob anderes Fahrzeug vor uns ist
@@ -334,13 +329,14 @@ export class TrafficManager {
                     break;
             }
             
-            // Wenn Fahrzeug vor uns und zu nah, stoppen
-            if (isAhead && distance < safeDistance) {
-                return other;
+            // Wenn Fahrzeug vor uns und näher als bisheriger nächster, merken
+            if (isAhead && distance > 0 && distance < lookAheadDistance && distance < closestDistance) {
+                closestVehicle = other;
+                closestDistance = distance;
             }
         }
         
-        return null;
+        return closestVehicle ? { other: closestVehicle, distance: closestDistance } : null;
     }
 
     public cycleTrafficLights(): void {
