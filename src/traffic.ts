@@ -349,8 +349,26 @@ export class TrafficManager {
             for (let x = 0; x < this.MAP_WIDTH; x++) {
                 const tile = map[y][x];
                 if (tile.trafficLight) {
-                    // Wechsel zwischen RED_NS (1) und RED_EW (2)
-                    tile.trafficLight = tile.trafficLight === 1 ? 2 : 1;
+                    // Initialisiere Timer und Phasendauer bei erster Nutzung
+                    if (tile.trafficLightTimer === undefined) {
+                        // Zufälliger Start-Timer (0-8 Ticks) für versetzte Schaltung
+                        tile.trafficLightTimer = Math.floor(Math.random() * 8);
+                        // Zufällige Phasendauer zwischen 3 und 7 Ticks (6-14 Sekunden bei 2s/Tick)
+                        tile.trafficLightPhaseDuration = 3 + Math.floor(Math.random() * 5);
+                    }
+                    
+                    // Timer herunterzählen
+                    tile.trafficLightTimer!--;
+                    
+                    // Wenn Timer abgelaufen, Ampel schalten
+                    if (tile.trafficLightTimer! <= 0) {
+                        // Wechsel zwischen RED_NS (1) und RED_EW (2)
+                        tile.trafficLight = tile.trafficLight === 1 ? 2 : 1;
+                        
+                        // Neuer Timer mit neuer zufälliger Phasendauer
+                        tile.trafficLightPhaseDuration = 3 + Math.floor(Math.random() * 5);
+                        tile.trafficLightTimer = tile.trafficLightPhaseDuration;
+                    }
                 }
             }
         }

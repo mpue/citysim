@@ -470,9 +470,15 @@ export class Game {
 
     private saveGame(): void {
         try {
-            const saveName = prompt('Name f\u00fcr diese Stadt:', `Stadt_${this.stats.year}`);
-            if (!saveName) return;
+            console.log('saveGame() aufgerufen');
             
+            const saveName = prompt('Name fuer diese Stadt:', `Stadt_${this.stats.year}`);
+            if (!saveName) {
+                console.log('Speichern abgebrochen - kein Name eingegeben');
+                return;
+            }
+            
+            console.log('Erstelle Speicherdaten...');
             const saveData = {
                 map: this.cityMap.getAllTiles(),
                 stats: this.stats,
@@ -486,66 +492,76 @@ export class Game {
             };
             
             const saveKey = `citysim_save_${saveName}`;
-            localStorage.setItem(saveKey, JSON.stringify(saveData));
+            console.log('Speichere unter Key:', saveKey);
+            
+            const jsonString = JSON.stringify(saveData);
+            console.log('JSON-Groesse:', jsonString.length, 'Zeichen');
+            
+            localStorage.setItem(saveKey, jsonString);
+            console.log('Erfolgreich gespeichert!');
+            
             this.showInfo('Spiel erfolgreich gespeichert als "' + saveName + '"!');
+            alert('Spiel erfolgreich gespeichert als "' + saveName + '"!');
         } catch (e) {
-            this.showInfo('Fehler beim Speichern: ' + (e as Error).message);
+            console.error('Fehler beim Speichern:', e);
+            const errorMsg = 'Fehler beim Speichern: ' + (e as Error).message;
+            this.showInfo(errorMsg);
+            alert(errorMsg);
         }
     }
 
     private loadGame(): void {
         try {
-            const saveDataStr = localStorage.getItem('citysim_save');
-            if (!saveDataStr) {
-                this.showInfo('Kein gespeichertes Spiel gefunden!');
-                return;
-            }
-            
-            const saveData = JSON.parse(saveDataStr);
-            
-            // Karte wiederherstellen
-            const map = this.cityMap.getAllTiles();
-            for (let y = 0; y < this.MAP_HEIGHT; y++) {
-                for (let x = 0; x < this.MAP_WIDTH; x++) {
-                    if (saveData.map[y] && saveData.map[y][x]) {
-                        Object.assign(map[y][x], saveData.map[y][x]);
-                        // Sicherstellen, dass variant für alte Saves aktualisiert wird
-                        if (map[y][x].variant === undefined || map[y][x].variant > 4) {
-                            map[y][x].variant = Math.floor(Math.random() * 5);
+            // Alle Saves finden
+            const saves: Array<{key: string, name: string, timestamp: number}> = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('citysim_save_')) {
+                    const name = key.replace('citysim_save_', '');
+                    const dataStr = localStorage.getItem(key);
+                    if (dataStr) {
+                        try {
+                            const data = JSON.parse(dataStr);
+                            saves.push({
+                                key: key,
+                                name: name,
+                                timestamp: data.timestamp || 0
+                            });
+                        } catch (e) {
+                            // Ignoriere beschädigte Saves
                         }
                     }
                 }
             }
             
-            // Stats wiederherstellen
-            this.stats = saveData.stats;
-            
-            // Kompatibilität mit alten Saves (Loan-System)
-            if (this.stats.loan === undefined) {
-                this.stats.loan = 0;
-                this.stats.loanInterestRate = 5.0;
+            if (saves.length === 0) {
+                this.showInfo('Keine gespeicherten Städte gefunden!');
+                return;
             }
             
-            // Population History wiederherstellen
-            if (saveData.populationHistory) {
-                this.populationHistory = saveData.populationHistory;
-            } else {
-                this.populationHistory = [];
+            // Sortiere nach Timestamp (neueste zuerst)
+            saves.sort((a, b) => b.timestamp - a.timestamp);
+            
+            // Liste erstellen
+            let saveList = 'Verfügbare Städte:\n\n';
+            saves.forEach((save, index) => {
+                const date = new Date(save.timestamp);
+                const dateStr = date.toLocaleString('de-DE');
+                saveList += `${index + 1}. ${save.name} (${dateStr})\n`;
+            });
+            saveList += '\nWelche Stadt möchtest du laden? (Nummer eingeben)';
+            
+            const choice = prompt(saveList);
+            if (!choice) return;
+            
+            const index = parseInt(choice) - 1;
+            if (index < 0 || index >= saves.length) {
+                this.showInfo('Ungültige Auswahl!');
+                return;
             }
             
-            // Achievement flags wiederherstellen
-            this.achievementShown5000 = saveData.achievementShown5000 ?? false;
-            this.achievementShown10000 = saveData.achievementShown10000 ?? false;
-            this.achievementShown50000 = saveData.achievementShown50000 ?? false;
-            this.achievementShown100000 = saveData.achievementShown100000 ?? false;
-            this.achievementShown1000000 = saveData.achievementShown1000000 ?? false;
-            
-            // Power Grid neu berechnen
-            this.cityMap.updatePowerGrid();
-            
-            this.updateUI();
-            this.drawPopulationGraph();
-            this.showInfo('Spiel erfolgreich geladen!');
+            // Lade den ausgewählten Save
+            this.loadGameFromKey(saves[index].key);
         } catch (e) {
             this.showInfo('Fehler beim Laden: ' + (e as Error).message);
         }
@@ -598,8 +614,9 @@ export class Game {
             this.achievementShown100000 = saveData.achievementShown100000 ?? false;
             this.achievementShown1000000 = saveData.achievementShown1000000 ?? false;
             
-            // Power Grid neu berechnen
+            // Power Grid und Water Grid neu berechnen
             this.cityMap.updatePowerGrid();
+            this.cityMap.updateWaterGrid();
             
             this.updateUI();
             this.drawPopulationGraph();
@@ -1670,15 +1687,15 @@ export class Game {
         const isPowerlineMode = this.currentTool === 'powerline';
         const isWaterlineMode = this.currentTool === 'waterline';
         
-        // 1. Stromleitungen ZUERST zeichnen (unter allen Gebäuden)
-        if (tile.powerLine) {
+        // 1. Stromleitungen ZUERST zeichnen (unter allen Gebäuden) - ABER nicht im Wasserleitungs-Modus
+        if (tile.powerLine && !isWaterlineMode) {
             const powerConnections = this.getPowerLineConnections(gridX, gridY);
             this.renderer.drawPowerLine(x, y, powerConnections.north, powerConnections.east,
                                        powerConnections.south, powerConnections.west);
         }
         
-        // 1.5. Wasserleitungen zeichnen (über Stromleitungen)
-        if (tile.waterLine) {
+        // 1.5. Wasserleitungen zeichnen (über Stromleitungen) - ABER nicht im Stromleitungs-Modus
+        if (tile.waterLine && !isPowerlineMode) {
             const waterConnections = this.getWaterLineConnections(gridX, gridY);
             this.renderer.drawWaterLine(x, y, waterConnections.north, waterConnections.east,
                                        waterConnections.south, waterConnections.west);

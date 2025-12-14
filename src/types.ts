@@ -27,6 +27,8 @@ export interface Tile {
     waterLine: boolean;  // Wasserleitung als Overlay
     traffic: number;  // Verkehrsdichte (0-100)
     trafficLight?: TrafficLightState;  // Ampelzustand an Kreuzungen
+    trafficLightTimer?: number;  // Countdown bis zum nächsten Ampelwechsel
+    trafficLightPhaseDuration?: number;  // Dauer der aktuellen Ampelphase in Ticks
 }
 
 export enum TrafficLightState {
