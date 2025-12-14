@@ -4,25 +4,42 @@ FROM node:18-alpine
 # Arbeitsverzeichnis erstellen
 WORKDIR /app
 
-# Zuerst Backend Package files kopieren und installieren
-COPY server/package*.json /app/server/
-WORKDIR /app/server
-RUN npm install --production
-
-# Zurück zum Root für Frontend
-WORKDIR /app
+# Kopiere alle package.json Dateien
 COPY package*.json ./
+COPY server/package*.json ./server/
+
+# Installiere Frontend Dependencies
 RUN npm install
 
-# Jetzt alles andere kopieren
-COPY . .
+# Installiere Backend Dependencies
+WORKDIR /app/server
+RUN npm ci --production
 
-# TypeScript Build (falls noch nicht vorhanden)
-RUN if [ ! -d "dist" ]; then npm run build; fi
+# Zurück zum Root und kopiere Quellcode
+WORKDIR /app
+COPY src ./src
+COPY tsconfig.json ./
+COPY build-minify.js ./
+
+# Kopiere Server Code
+COPY server ./server
+
+# Kopiere Assets
+COPY icons ./icons
+COPY fx ./fx
+COPY songs ./songs
+COPY index.html ./
+COPY style.css ./
+
+# Build Frontend
+RUN npm run build
+
+# Verify server dependencies
+WORKDIR /app/server
+RUN ls -la && ls -la node_modules || echo "node_modules check"
 
 # Port exponieren
 EXPOSE 3000
 
-# Server starten aus /app/server
-WORKDIR /app/server
+# Server starten
 CMD ["node", "server.js"]

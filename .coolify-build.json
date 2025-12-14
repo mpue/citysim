@@ -1,0 +1,10 @@
+{
+  "buildCommand": "docker build -t citysim-backend .",
+  "dockerfilePath": "./Dockerfile",
+  "buildContext": ".",
+  "port": 3000,
+  "healthcheck": {
+    "path": "/login",
+    "interval": 30
+  }
+}
