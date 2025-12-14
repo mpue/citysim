@@ -4,23 +4,23 @@ FROM node:18-alpine
 # Arbeitsverzeichnis erstellen
 WORKDIR /app
 
-# Package files kopieren
+# Package files für Frontend und Backend kopieren
+COPY package*.json ./
 COPY server/package*.json ./server/
 
-# Dependencies installieren
+# Frontend Dependencies installieren (für Build)
+RUN npm install
+
+# Backend Dependencies installieren
 WORKDIR /app/server
 RUN npm install --production
 
-# Komplettes Projekt kopieren
+# Zurück zum Root und alles kopieren
 WORKDIR /app
 COPY . .
 
 # Build-Schritt für TypeScript (falls noch nicht gebaut)
-WORKDIR /app
-RUN if [ ! -d "dist" ]; then \
-    npm install && \
-    npm run build; \
-    fi
+RUN if [ ! -d "dist" ]; then npm run build; fi
 
 # Port exponieren
 EXPOSE 3000
