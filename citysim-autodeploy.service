@@ -1,0 +1,14 @@
+[Unit]
+Description=CitySim Auto-Deploy Service
+After=network.target
+
+[Service]
+Type=simple
+User=your-user
+WorkingDirectory=/pfad/zu/citysim
+ExecStart=/bin/bash /pfad/zu/citysim/auto-deploy.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
