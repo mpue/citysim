@@ -274,6 +274,117 @@ app.post('/api/user/change-password', isAuthenticated, [
 
 // Get all saves for current user
 app.get('/api/saves', isAuthenticated, (req, res) => {
+    try {
+        const saves = db.getUserSaves(req.session.userId);
+        res.json({ success: true, saves });
+    } catch (error) {
+        console.error('Get saves error:', error);
+        res.status(500).json({ success: false, message: 'Fehler beim Laden der Spielstände' });
+    }
+});
+
+// Save game
+app.post('/api/saves', isAuthenticated, (req, res) => {
+    try {
+        const { saveName, cityName, population, money, gameYear, gameData } = req.body;
+        
+        if (!saveName || !gameData) {
+            return res.status(400).json({ success: false, message: 'Ungültige Speicherdaten' });
+        }
+
+        // Check if save with this name already exists
+        const existingSave = db.getSaveByName(req.session.userId, saveName);
+        
+        if (existingSave) {
+            // Update existing save
+            db.updateGameSave(
+                existingSave.id,
+                cityName || 'Meine Stadt',
+                population || 0,
+                money || 0,
+                gameYear || 1,
+                gameData
+            );
+            db.logActivity(req.session.userId, 'game_save_update', saveName, req.ip);
+            res.json({ success: true, message: 'Spielstand aktualisiert', saveId: existingSave.id });
+        } else {
+            // Create new save
+            const saveId = db.saveGame(
+                req.session.userId,
+                saveName,
+                cityName || 'Meine Stadt',
+                population || 0,
+                money || 0,
+                gameYear || 1,
+                gameData,
+                false
+            );
+            db.logActivity(req.session.userId, 'game_save_create', saveName, req.ip);
+            res.json({ success: true, message: 'Spielstand gespeichert', saveId });
+        }
+    } catch (error) {
+        console.error('Save game error:', error);
+        res.status(500).json({ success: false, message: 'Fehler beim Speichern' });
+    }
+});
+
+// Load specific save
+app.get('/api/saves/:id', isAuthenticated, (req, res) => {
+    try {
+        const saveId = parseInt(req.params.id);
+        const save = db.getGameSave(saveId, req.session.userId);
+        
+        if (!save) {
+            return res.status(404).json({ success: false, message: 'Spielstand nicht gefunden' });
+        }
+        
+        // Parse game_data JSON string
+        const gameData = JSON.parse(save.game_data);
+        
+        db.logActivity(req.session.userId, 'game_load', save.save_name, req.ip);
+        res.json({ 
+            success: true, 
+            save: {
+                id: save.id,
+                saveName: save.save_name,
+                cityName: save.city_name,
+                population: save.population,
+                money: save.money,
+                gameYear: save.game_year,
+                gameData: gameData,
+                createdAt: save.created_at,
+                updatedAt: save.updated_at
+            }
+        });
+    } catch (error) {
+        console.error('Load game error:', error);
+        res.status(500).json({ success: false, message: 'Fehler beim Laden' });
+    }
+});
+
+// Delete save
+app.delete('/api/saves/:id', isAuthenticated, (req, res) => {
+    try {
+        const saveId = parseInt(req.params.id);
+        const save = db.getGameSave(saveId, req.session.userId);
+        
+        if (!save) {
+            return res.status(404).json({ success: false, message: 'Spielstand nicht gefunden' });
+        }
+        
+        db.deleteGameSave(saveId, req.session.userId);
+        db.logActivity(req.session.userId, 'game_delete', save.save_name, req.ip);
+        res.json({ success: true, message: 'Spielstand gelöscht' });
+    } catch (error) {
+        console.error('Delete save error:', error);
+        res.status(500).json({ success: false, message: 'Fehler beim Löschen' });
+    }
+});
+
+// ==================== GAME SAVE API ====================
+
+// Get all saves for current user
+app.get('/api/saves', isAuthenticated, (req, res) => {
     const saves = db.getUserSaves(req.session.userId);
     res.json({ success: true, saves });
 });

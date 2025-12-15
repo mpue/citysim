@@ -267,6 +267,12 @@ class DatabaseManager {
         return true;
     }
 
+    getSaveByName(userId, saveName) {
+        return this.db.get('gameSaves')
+            .find({ user_id: userId, save_name: saveName })
+            .value();
+    }
+
     // Statistics methods
     getUserStats(userId) {
         return this.db.get('userStats')

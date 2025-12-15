@@ -23,25 +23,57 @@ function setupStartScreen(): void {
     loadSavedGames();
 }
 
-function loadSavedGames(): void {
+async function loadSavedGames(): Promise<void> {
     const savedGamesList = document.getElementById('saved-games-list');
     if (!savedGamesList) return;
     
-    const saves: any[] = [];
+    let saves: any[] = [];
+    let useServer = false;
     
-    // Alle Saves aus localStorage sammeln
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('citysim_save_')) {
-            try {
-                const saveData = JSON.parse(localStorage.getItem(key) || '{}');
-                saves.push({
-                    key: key,
-                    name: key.replace('citysim_save_', ''),
-                    data: saveData
-                });
-            } catch (e) {
-                console.error('Fehler beim Laden von Save:', key, e);
+    // Try to load from server first
+    try {
+        const authCheck = await fetch('/api/auth/check');
+        const authResult = await authCheck.json();
+        
+        if (authResult.authenticated) {
+            const response = await fetch('/api/saves');
+            const result = await response.json();
+            
+            if (result.success && result.saves.length > 0) {
+                useServer = true;
+                saves = result.saves.map((s: any) => ({
+                    id: s.id,
+                    name: s.save_name,
+                    data: {
+                        stats: {
+                            year: s.game_year,
+                            population: s.population,
+                            money: s.money
+                        }
+                    },
+                    updatedAt: s.updated_at
+                }));
+            }
+        }
+    } catch (error) {
+        console.log('Not authenticated, using localStorage');
+    }
+    
+    // Fallback to localStorage
+    if (!useServer) {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('citysim_save_')) {
+                try {
+                    const saveData = JSON.parse(localStorage.getItem(key) || '{}');
+                    saves.push({
+                        key: key,
+                        name: key.replace('citysim_save_', ''),
+                        data: saveData
+                    });
+                } catch (e) {
+                    console.error('Fehler beim Laden von Save:', key, e);
+                }
             }
         }
     }
@@ -75,10 +107,14 @@ function loadSavedGames(): void {
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'saved-game-delete';
             deleteBtn.textContent = 'Löschen';
-            deleteBtn.onclick = (e) => {
+            deleteBtn.onclick = async (e) => {
                 e.stopPropagation();
                 if (confirm(`Stadt "${save.name}" wirklich löschen?`)) {
-                    localStorage.removeItem(save.key);
+                    if (useServer && save.id) {
+                        await fetch(`/api/saves/${save.id}`, { method: 'DELETE' });
+                    } else if (save.key) {
+                        localStorage.removeItem(save.key);
+                    }
                     loadSavedGames();
                 }
             };
@@ -87,7 +123,11 @@ function loadSavedGames(): void {
             item.appendChild(deleteBtn);
             
             item.onclick = () => {
-                loadGame(save.key);
+                if (useServer && save.id) {
+                    loadGameFromServer(save.id);
+                } else if (save.key) {
+                    loadGame(save.key);
+                }
             };
             
             savedGamesList.appendChild(item);
@@ -113,6 +153,20 @@ function loadGame(saveKey: string): void {
     }, 100);
     
     console.log('CitySim - Stadt geladen:', saveKey);
+}
+
+async function loadGameFromServer(saveId: number): Promise<void> {
+    hideStartScreen();
+    game = new Game('gameCanvas');
+    
+    // Save vom Server laden
+    setTimeout(() => {
+        if (game) {
+            (game as any).loadGameFromServer(saveId);
+        }
+    }, 100);
+    
+    console.log('CitySim - Stadt vom Server geladen:', saveId);
 }
 
 function hideStartScreen(): void {

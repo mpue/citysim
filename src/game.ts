@@ -518,25 +518,53 @@ export class Game {
         }
     }
 
-    private loadGame(): void {
+    private async loadGame(): Promise<void> {
         try {
-            // Alle Saves finden
-            const saves: Array<{key: string, name: string, timestamp: number}> = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith('citysim_save_')) {
-                    const name = key.replace('citysim_save_', '');
-                    const dataStr = localStorage.getItem(key);
-                    if (dataStr) {
-                        try {
-                            const data = JSON.parse(dataStr);
-                            saves.push({
-                                key: key,
-                                name: name,
-                                timestamp: data.timestamp || 0
-                            });
-                        } catch (e) {
-                            // Ignoriere beschädigte Saves
+            let saves: Array<{id?: number, key?: string, name: string, timestamp: number, updatedAt?: string}> = [];
+            let useServer = false;
+            
+            // Check if we're in authenticated mode
+            try {
+                const authCheck = await fetch('/api/auth/check');
+                const authResult = await authCheck.json();
+                
+                if (authResult.authenticated) {
+                    // Load from server
+                    const response = await fetch('/api/saves');
+                    const result = await response.json();
+                    
+                    if (result.success && result.saves.length > 0) {
+                        useServer = true;
+                        saves = result.saves.map((s: any) => ({
+                            id: s.id,
+                            name: s.save_name,
+                            timestamp: new Date(s.updated_at).getTime(),
+                            updatedAt: s.updated_at
+                        }));
+                    }
+                }
+            } catch (authError) {
+                console.log('Not authenticated, using localStorage fallback');
+            }
+            
+            // Fallback to localStorage
+            if (!useServer) {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('citysim_save_')) {
+                        const name = key.replace('citysim_save_', '');
+                        const dataStr = localStorage.getItem(key);
+                        if (dataStr) {
+                            try {
+                                const data = JSON.parse(dataStr);
+                                saves.push({
+                                    key: key,
+                                    name: name,
+                                    timestamp: data.timestamp || 0
+                                });
+                            } catch (e) {
+                                // Ignoriere beschädigte Saves
+                            }
                         }
                     }
                 }
@@ -568,9 +596,37 @@ export class Game {
                 return;
             }
             
-            // Lade den ausgewählten Save
-            this.loadGameFromKey(saves[index].key);
+            const selectedSave = saves[index];
+            
+            if (useServer && selectedSave.id) {
+                // Lade vom Server
+                await this.loadGameFromServer(selectedSave.id);
+            } else if (selectedSave.key) {
+                // Lade aus localStorage
+                this.loadGameFromKey(selectedSave.key);
+            }
         } catch (e) {
+            this.showInfo('Fehler beim Laden: ' + (e as Error).message);
+        }
+    }
+
+    public async loadGameFromServer(saveId: number): Promise<void> {
+        try {
+            const response = await fetch(`/api/saves/${saveId}`);
+            const result = await response.json();
+            
+            if (!result.success) {
+                this.showInfo('Fehler beim Laden: ' + result.message);
+                return;
+            }
+            
+            const saveData = result.save.gameData;
+            this.loadGameData(saveData);
+            
+            this.showInfo('Stadt erfolgreich geladen!');
+            console.log('Spiel vom Server geladen:', result.save.saveName);
+        } catch (e) {
+            console.error('Fehler beim Laden vom Server:', e);
             this.showInfo('Fehler beim Laden: ' + (e as Error).message);
         }
     }
@@ -584,6 +640,18 @@ export class Game {
             }
             
             const saveData = JSON.parse(saveDataStr);
+            this.loadGameData(saveData);
+            
+            this.showInfo('Stadt erfolgreich geladen!');
+            console.log('Spiel aus localStorage geladen:', saveKey);
+        } catch (e) {
+            console.error('Fehler beim Laden:', e);
+            this.showInfo('Fehler beim Laden: ' + (e as Error).message);
+        }
+    }
+
+    private loadGameData(saveData: any): void {
+        try {
             
             // Karte wiederherstellen
             const map = this.cityMap.getAllTiles();
@@ -628,9 +696,8 @@ export class Game {
             
             this.updateUI();
             this.drawPopulationGraph();
-            this.showInfo('Stadt erfolgreich geladen!');
         } catch (e) {
-            this.showInfo('Fehler beim Laden: ' + (e as Error).message);
+            throw e;
         }
     }
 
