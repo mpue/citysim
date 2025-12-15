@@ -1,0 +1,20 @@
+[Unit]
+Description=CitySim Backend Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/citysim/server
+Environment="NODE_ENV=production"
+Environment="SESSION_SECRET=HIER-DEIN-SICHERES-SECRET-EINTRAGEN"
+Environment="PORT=3000"
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=citysim
+
+[Install]
+WantedBy=multi-user.target
