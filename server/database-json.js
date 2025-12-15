@@ -338,6 +338,33 @@ class DatabaseManager {
         };
     }
 
+    // Database Export/Import
+    exportDatabase() {
+        // Return complete database as JSON
+        return this.db.getState();
+    }
+
+    importDatabase(jsonData) {
+        try {
+            // Validate JSON structure
+            if (!jsonData.users || !Array.isArray(jsonData.users)) {
+                throw new Error('Ungültiges Datenbankformat: users Array fehlt');
+            }
+            
+            // Backup current database
+            const backupPath = path.join(__dirname, 'data', `citysim.backup.${Date.now()}.json`);
+            const currentData = this.db.getState();
+            fs.writeFileSync(backupPath, JSON.stringify(currentData, null, 2));
+            
+            // Import new data
+            this.db.setState(jsonData).write();
+            
+            return { success: true, backupPath };
+        } catch (error) {
+            throw new Error('Import fehlgeschlagen: ' + error.message);
+        }
+    }
+
     close() {
         // lowdb writes synchronously, no need to close
     }

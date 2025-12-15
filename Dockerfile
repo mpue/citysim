@@ -25,6 +25,7 @@ COPY build-minify.js ./
 COPY server/server.js ./server/
 COPY server/database-json.js ./server/
 COPY server/public ./server/public
+COPY server/scripts ./server/scripts
 
 # Kopiere Assets
 COPY icons ./icons
@@ -40,8 +41,22 @@ RUN npm run build
 WORKDIR /app/server
 RUN ls -la && ls -la node_modules || echo "node_modules check"
 
+# Erstelle data Verzeichnis
+RUN mkdir -p /app/server/data
+
 # Port exponieren
 EXPOSE 3000
 
-# Server starten
-CMD ["node", "server.js"]
+# Erstelle Startup-Script
+RUN echo '#!/bin/sh' > /app/server/start.sh && \
+    echo 'cd /app/server' >> /app/server/start.sh && \
+    echo 'if [ ! -f data/citysim.json ]; then' >> /app/server/start.sh && \
+    echo '  echo "🔧 Initialisiere Datenbank..."' >> /app/server/start.sh && \
+    echo '  npm run init-db' >> /app/server/start.sh && \
+    echo 'fi' >> /app/server/start.sh && \
+    echo 'echo "🚀 Starte Server..."' >> /app/server/start.sh && \
+    echo 'node server.js' >> /app/server/start.sh && \
+    chmod +x /app/server/start.sh
+
+# Server starten mit Init-Check
+CMD ["/bin/sh", "/app/server/start.sh"]

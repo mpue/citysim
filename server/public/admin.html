@@ -93,6 +93,38 @@
             font-size: 12px;
         }
 
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+        }
+
         .filter-bar {
             display: flex;
             gap: 15px;
@@ -270,6 +302,9 @@
                 </select>
                 <button class="btn btn-primary" onclick="openCreateUserModal()">➕ Neuer Benutzer</button>
                 <button class="btn btn-primary" onclick="loadUsers()">🔄 Aktualisieren</button>
+                <button class="btn btn-success" onclick="exportDatabase()">💾 Backup</button>
+                <button class="btn btn-warning" onclick="document.getElementById('importInput').click()">📥 Restore</button>
+                <input type="file" id="importInput" accept=".json" style="display: none;" onchange="importDatabase(event)">
             </div>
 
             <div style="overflow-x: auto;">
@@ -647,6 +682,69 @@
             setTimeout(() => {
                 message.style.display = 'none';
             }, 5000);
+        }
+
+        // Database Export/Import
+        async function exportDatabase() {
+            try {
+                const response = await fetch('/api/admin/backup/export');
+                if (!response.ok) throw new Error('Export fehlgeschlagen');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                const date = new Date().toISOString().split('T')[0];
+                a.download = `citysim-backup-${date}.json`;
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                showMessage('Datenbank erfolgreich exportiert', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showMessage('Fehler beim Exportieren: ' + error.message, 'error');
+            }
+        }
+
+        async function importDatabase(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!confirm('⚠️ WARNUNG: Der Import wird die aktuelle Datenbank ersetzen!\n\nEin automatisches Backup wird erstellt, aber bitte stellen Sie sicher, dass Sie ein manuelles Backup haben.\n\nMöchten Sie fortfahren?')) {
+                event.target.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('backup', file);
+
+            try {
+                const response = await fetch('/api/admin/backup/import', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                    setTimeout(() => {
+                        loadStats();
+                        loadUsers();
+                    }, 1000);
+                } else {
+                    showMessage(result.message || 'Import fehlgeschlagen', 'error');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                showMessage('Fehler beim Importieren: ' + error.message, 'error');
+            } finally {
+                event.target.value = '';
+            }
         }
 
         // Event listeners

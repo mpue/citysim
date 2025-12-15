@@ -13,6 +13,8 @@ services:
       - PORT=3000
     restart: unless-stopped
     volumes:
+      # Persistiere Datenbank
+      - citysim-data:/app/server/data
       # Optional: Mount für Entwicklung
       # - ./server:/app/server
       # - ./dist:/app/dist
@@ -22,6 +24,10 @@ services:
       - /app/server/node_modules
     networks:
       - citysim-network
+
+volumes:
+  citysim-data:
+    driver: local
 
 networks:
   citysim-network:

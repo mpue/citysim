@@ -181,6 +181,9 @@ docker-compose up -d
 
 ### Schritt 3: Datenbank initialisieren
 
+**Automatisch:** Die Datenbank wird beim ersten Start automatisch erstellt.
+
+**Manuell (falls nötig):**
 ```bash
 # In den Container einloggen
 docker exec -it citysim-backend sh
@@ -190,6 +193,19 @@ cd /app/server
 npm run init-db
 exit
 ```
+
+**Schnell-Befehl:**
+```bash
+# Direkter Befehl ohne Container-Login
+docker exec citysim-backend sh -c "cd /app/server && npm run init-db"
+```
+
+Die Datenbank wird persistent in einem Docker Volume gespeichert.
+
+**Standard-Admin:**
+- Username: `admin`
+- Password: `admin123`
+- ⚠️ **WICHTIG:** Passwort nach erstem Login ändern!
 
 ### Schritt 4: Container neu starten
 
@@ -435,6 +451,57 @@ docker-compose ps
 ---
 
 ## Troubleshooting
+
+### Docker "ContainerConfig" KeyError
+
+**Problem:** `KeyError: 'ContainerConfig'` beim Start mit docker-compose
+```
+ERROR: for citysim-backend  'ContainerConfig'
+```
+
+**Ursache:** Korrupter Container-State oder alte Docker Compose Version
+
+**Lösung:**
+```bash
+# 1. Alles komplett herunterfahren und entfernen
+sudo docker-compose down
+sudo docker-compose rm -f
+
+# 2. Alte Images entfernen
+sudo docker images | grep citysim
+sudo docker rmi citysim-citysim-backend  # oder die entsprechende Image-ID
+
+# 3. Alte Container entfernen (falls vorhanden)
+sudo docker ps -a | grep citysim
+sudo docker rm -f citysim-backend
+
+# 4. Docker-Cache leeren (optional)
+sudo docker system prune -a --volumes
+# WARNUNG: Löscht alle ungenutzten Images, Container, Volumes!
+# Bestätigung mit 'y' erforderlich
+
+# 5. Neu bauen und starten
+sudo docker-compose build --no-cache
+sudo docker-compose up -d
+
+# 6. Logs prüfen
+sudo docker-compose logs -f
+```
+
+**Alternative: Docker Compose V2 verwenden (empfohlen)**
+```bash
+# Alte Version deinstallieren
+sudo apt-get remove docker-compose
+
+# Docker Compose V2 Plugin installieren (kommt mit Docker)
+sudo apt-get update
+sudo apt-get install docker-compose-plugin
+
+# Verwende nun "docker compose" (ohne Bindestrich!)
+docker compose version
+docker compose build --no-cache
+docker compose up -d
+```
 
 ### Docker-Build schlägt fehl
 

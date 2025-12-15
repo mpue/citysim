@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
+const multer = require('multer');
 const path = require('path');
 const DatabaseManager = require('./database-json');
 
@@ -441,6 +442,54 @@ app.delete('/api/admin/users/:id', isAuthenticated, isAdmin, (req, res) => {
         res.json({ success: true, message: 'Benutzer gelöscht' });
     } else {
         res.status(500).json({ success: false, message: 'Fehler beim Löschen' });
+    }
+});
+
+// ==================== BACKUP/RESTORE API ====================
+
+// Multer setup for file upload
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
+
+// Export database (admin only)
+app.get('/api/admin/backup/export', isAuthenticated, isAdmin, (req, res) => {
+    try {
+        const data = db.exportDatabase();
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+        const filename = `citysim-backup-${timestamp}.json`;
+        
+        db.logActivity(req.session.userId, 'admin_backup_export', 'Database exported', req.ip);
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.json(data);
+    } catch (error) {
+        console.error('Export error:', error);
+        res.status(500).json({ success: false, message: 'Fehler beim Exportieren der Datenbank' });
+    }
+});
+
+// Import database (admin only)
+app.post('/api/admin/backup/import', isAuthenticated, isAdmin, upload.single('backup'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Keine Datei hochgeladen' });
+        }
+        
+        const jsonData = JSON.parse(req.file.buffer.toString('utf8'));
+        const result = db.importDatabase(jsonData);
+        
+        db.logActivity(req.session.userId, 'admin_backup_import', `Database imported, backup saved to: ${result.backupPath}`, req.ip);
+        
+        res.json({ 
+            success: true, 
+            message: 'Datenbank erfolgreich importiert. Backup wurde erstellt unter: ' + path.basename(result.backupPath)
+        });
+    } catch (error) {
+        console.error('Import error:', error);
+        res.status(500).json({ success: false, message: 'Import fehlgeschlagen: ' + error.message });
     }
 });
 
