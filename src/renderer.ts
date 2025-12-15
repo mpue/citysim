@@ -81,115 +81,123 @@ export class AmberRenderer {
         this.loadIcons();
     }
 
+    private getAssetPath(path: string): string {
+        // Prüfe ob wir auf dem Server sind (URL beginnt mit /game)
+        if (window.location.pathname.startsWith('/game')) {
+            return `/game/${path}`;
+        }
+        return path;
+    }
+
     private loadIcons(): void {
         // Lade Commercial Buildings - Bakery (49 Icons)
         for (let i = 1; i <= 49; i++) {
             const img = new Image();
-            img.src = `/game/icons/buildings/commercial/bakery/${String(i).padStart(4, '0')}.png`;
+            img.src = this.getAssetPath(`icons/buildings/commercial/bakery/${String(i).padStart(4, '0')}.png`);
             this.commercialBakeryIcons.push(img);
         }
         
         // Lade Commercial Buildings - Bookstore (48 Icons)
         for (let i = 1; i <= 48; i++) {
             const img = new Image();
-            img.src = `/game/icons/buildings/commercial/bookstore/${String(i).padStart(4, '0')}.png`;
+            img.src = this.getAssetPath(`icons/buildings/commercial/bookstore/${String(i).padStart(4, '0')}.png`);
             this.commercialBookstoreIcons.push(img);
         }
         
         // Lade Commercial Buildings - Grocery (17 Icons)
         for (let i = 1; i <= 17; i++) {
             const img = new Image();
-            img.src = `/game/icons/buildings/commercial/grocery/${String(i).padStart(4, '0')}.png`;
+            img.src = this.getAssetPath(`icons/buildings/commercial/grocery/${String(i).padStart(4, '0')}.png`);
             this.commercialGroceryIcons.push(img);
         }
         
         // Lade Commercial Buildings - Pharmacy (48 Icons)
         for (let i = 1; i <= 48; i++) {
             const img = new Image();
-            img.src = `/game/icons/buildings/commercial/pharmacy/${String(i).padStart(4, '0')}.png`;
+            img.src = this.getAssetPath(`icons/buildings/commercial/pharmacy/${String(i).padStart(4, '0')}.png`);
             this.commercialPharmacyIcons.push(img);
         }
         
         // Lade Industrial Buildings - Factories (51 Icons)
         for (let i = 1; i <= 51; i++) {
             const img = new Image();
-            img.src = `/game/icons/buildings/industrial/factories/${String(i).padStart(4, '0')}.png`;
+            img.src = this.getAssetPath(`icons/buildings/industrial/factories/${String(i).padStart(4, '0')}.png`);
             this.industrialFactoriesIcons.push(img);
         }
         
         // Lade Industrial Buildings - Storage (57 Icons)
         for (let i = 1; i <= 57; i++) {
             const img = new Image();
-            img.src = `/game/icons/buildings/industrial/storage/${String(i).padStart(4, '0')}.png`;
+            img.src = this.getAssetPath(`icons/buildings/industrial/storage/${String(i).padStart(4, '0')}.png`);
             this.industrialStorageIcons.push(img);
         }
         
         // Lade Residential Buildings - Appartements (64 Icons)
         for (let i = 1; i <= 64; i++) {
             const img = new Image();
-            img.src = `/game/icons/buildings/residential/appartements/${String(i).padStart(4, '0')}.png`;
+            img.src = this.getAssetPath(`icons/buildings/residential/appartements/${String(i).padStart(4, '0')}.png`);
             this.residentialAppartementsIcons.push(img);
         }
         
         // Lade Residential Buildings - Houses (27 Icons)
         for (let i = 1; i <= 27; i++) {
             const img = new Image();
-            img.src = `/game/icons/buildings/residential/houses/${String(i).padStart(4, '0')}.png`;
+            img.src = this.getAssetPath(`icons/buildings/residential/houses/${String(i).padStart(4, '0')}.png`);
             this.residentialHousesIcons.push(img);
         }
         
         // Lade Residential Buildings - Skyscraper (12 Icons)
         for (let i = 1; i <= 12; i++) {
             const img = new Image();
-            img.src = `/game/icons/buildings/residential/skyscraper/${String(i).padStart(4, '0')}.png`;
+            img.src = this.getAssetPath(`icons/buildings/residential/skyscraper/${String(i).padStart(4, '0')}.png`);
             this.residentialSkyscraperIcons.push(img);
         }
         
         // Lade Power Plants (7 Icons)
         for (let i = 1; i <= 7; i++) {
             const img = new Image();
-            img.src = `/game/icons/buildings/power/${String(i).padStart(4, '0')}.png`;
+            img.src = this.getAssetPath(`icons/buildings/power/${String(i).padStart(4, '0')}.png`);
             this.powerPlantIcons.push(img);
         }
         
         // Lade Baum-Icons
         for (let i = 1; i <= 4; i++) {
             const img = new Image();
-            img.src = `/game/icons/tree_${i}.png`;            
+            img.src = this.getAssetPath(`icons/tree_${i}.png`);            
             this.treeIcons.push(img);
         }
 
         const img = new Image();
-        img.src = `/game/icons/grass_1.png`;            
+        img.src = this.getAssetPath(`icons/grass_1.png`);            
         this.treeIcons.push(img);
 
         // Lade Hospital Icon
         this.hospitalIcon = new Image();
-        this.hospitalIcon.src = 'icons/hospital.png';
+        this.hospitalIcon.src = this.getAssetPath('icons/hospital.png');
         
         // Lade Police Icon
         this.policeIcon = new Image();
-        this.policeIcon.src = 'icons/police.png';
+        this.policeIcon.src = this.getAssetPath('icons/police.png');
         
         // Lade School Icon
         this.schoolIcon = new Image();
-        this.schoolIcon.src = 'icons/school.png';
+        this.schoolIcon.src = this.getAssetPath('icons/school.png');
         
         // Lade Library Icon
         this.libraryIcon = new Image();
-        this.libraryIcon.src = 'icons/library.png';
+        this.libraryIcon.src = this.getAssetPath('icons/library.png');
         
         // Lade Powerplant Icon (fallback für altes Format)
         this.powerplantIcon = new Image();
-        this.powerplantIcon.src = 'icons/powerplant.png';
+        this.powerplantIcon.src = this.getAssetPath('icons/powerplant.png');
         
         // Lade Waterpump Icon
         this.waterpumpIcon = new Image();
-        this.waterpumpIcon.src = 'icons/commands/waterpunp.png';
+        this.waterpumpIcon.src = this.getAssetPath('icons/commands/waterpunp.png');
         
         // Lade Car Icon
         this.carIcon = new Image();
-        this.carIcon.src = 'icons/car.png';
+        this.carIcon.src = this.getAssetPath('icons/car.png');
         
         // Warte bis alle Icons geladen sind
         const allIcons = [

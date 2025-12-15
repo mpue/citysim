@@ -79,7 +79,7 @@ export class Game {
         this.deltaTime = 0;
         this.backgroundMusic = [];
         this.currentTrack = 0;
-        this.clickSound = new Audio('/game/fx/click.wav');
+        this.clickSound = new Audio(this.getAssetPath('fx/click.wav'));
         this.clickSound.volume = 0.5;  // 50% Lautstärke
         this.populationHistory = [];
         this.populationGraphCanvas = document.getElementById('population-graph') as HTMLCanvasElement;
@@ -111,10 +111,18 @@ export class Game {
         this.startSimulation();
     }
 
+    private getAssetPath(path: string): string {
+        // Prüfe ob wir auf dem Server sind (URL beginnt mit /game)
+        if (window.location.pathname.startsWith('/game')) {
+            return `/game/${path}`;
+        }
+        return path;
+    }
+
     private setupBackgroundMusic(): void {
         // Lade beide Tracks
-        const track1 = new Audio('/game/songs/The_quietness_part1.mp3');
-        const track2 = new Audio('/game/songs/The_quietness_part2.mp3');
+        const track1 = new Audio(this.getAssetPath('songs/The_quietness_part1.mp3'));
+        const track2 = new Audio(this.getAssetPath('songs/The_quietness_part2.mp3'));
         
         track1.volume = 0.3;  // 30% Lautstärke
         track2.volume = 0.3;

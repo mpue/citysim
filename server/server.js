@@ -468,11 +468,25 @@ app.get('/game', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
-// All game resources MUST go through authentication
-app.get('/game/*', isAuthenticated, (req, res, next) => {
-    // Remove '/game' prefix and serve file
-    const filePath = req.path.substring(5); // Remove '/game'
-    res.sendFile(path.join(__dirname, '..', filePath));
+// Serve game assets when accessed from /game route - MUST be authenticated
+app.use('/game/icons', isAuthenticated, express.static(path.join(__dirname, '..', 'icons')));
+app.use('/game/fx', isAuthenticated, express.static(path.join(__dirname, '..', 'fx')));
+app.use('/game/songs', isAuthenticated, express.static(path.join(__dirname, '..', 'songs')));
+app.use('/game/dist', isAuthenticated, express.static(path.join(__dirname, '..', 'dist')));
+app.get('/game/style.css', isAuthenticated, (req, res) => {
+    res.type('text/css');
+    res.sendFile(path.join(__dirname, '..', 'style.css'));
+});
+
+// Also serve assets from root for local usage (without authentication for development)
+// Comment out these lines in production if you want to enforce /game route
+app.use('/icons', express.static(path.join(__dirname, '..', 'icons')));
+app.use('/fx', express.static(path.join(__dirname, '..', 'fx')));
+app.use('/songs', express.static(path.join(__dirname, '..', 'songs')));
+app.use('/dist', express.static(path.join(__dirname, '..', 'dist')));
+app.get('/style.css', (req, res) => {
+    res.type('text/css');
+    res.sendFile(path.join(__dirname, '..', 'style.css'));
 });
 
 // Root redirect

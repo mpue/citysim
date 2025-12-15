@@ -4,12 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Slimcity - Hercules Amber Edition</title>
-    <link rel="stylesheet" href="/game/style.css">
+    <script>
+        // Set base path for assets depending on environment
+        (function() {
+            const basePath = window.location.pathname.startsWith('/game') ? '/game/' : '/';
+            document.write('<base href="' + basePath + '">');
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="start-screen">
         <div id="start-screen-content">
-            <img src="/game/icons/logo.png" alt="Slimcity Logo" id="start-logo">
+            <img src="icons/logo.png" alt="Slimcity Logo" id="start-logo">
             <h1 id="start-title">SLIMCITY</h1>
             <p id="start-subtitle">Hercules Amber Edition</p>
             
@@ -29,7 +36,7 @@
 
     <div id="container" style="display: none;">
         <div id="header">
-            <img src="/game/icons/logo.png" alt="Slimcity Logo" id="logo">
+            <img src="icons/logo.png" alt="Slimcity Logo" id="logo">
             <div id="header-content">
                 <h1>SLIMCITY</h1>
                 <div id="stats">
@@ -96,21 +103,21 @@
         </div>
         
         <div id="toolbar">
-            <button class="tool-btn" data-tool="select" title="Auswählen"><img src="/game/icons/commands/select.png" alt="Auswählen" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="bulldozer" title="Abreissen - $10"><img src="/game/icons/commands/destroy.png" alt="Abreissen" width="64" height="64"></button>
-            <button class="tool-btn active" data-tool="residential" title="Wohngebiet - $100"><img src="/game/icons/commands/residential.png" alt="Wohngebiet" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="commercial" title="Gewerbe - $100"><img src="/game/icons/commands/commercial.png" alt="Gewerbe" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="industrial" title="Industrie - $100"><img src="/game/icons/commands/induatrial.png" alt="Industrie" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="road" title="Straße - $10"><img src="/game/icons/commands/road.png" alt="Strasse" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="power" title="Kraftwerk - $3000"><img src="/game/icons/commands/powerplant.png" alt="Kraftwerk" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="powerline" title="Stromleitung - $5"><img src="/game/icons/commands/powerline.png" alt="Stromleitung" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="waterpump" title="Wasserpumpe - $1500"><img src="/game/icons/commands/waterpunp.png" alt="Wasserpumpe" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="waterline" title="Wasserleitung - $5"><img src="/game/icons/commands/waterline.png" alt="Wasserleitung" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="park" title="Park - $20"><img src="/game/icons/commands/park.png" alt="Park" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="hospital" title="Krankenhaus - $500"><img src="/game/icons/commands/hospital.png" alt="Krankenhaus" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="police" title="Polizei - $500"><img src="/game/icons/commands/police.png" alt="Polizei" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="school" title="Schule - $300"><img src="/game/icons/commands/school.png" alt="Schule" width="64" height="64"></button>
-            <button class="tool-btn" data-tool="library" title="Bibliothek - $400"><img src="/game/icons/commands/library.png" alt="Bibliothek" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="select" title="Auswählen"><img src="icons/commands/select.png" alt="Auswählen" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="bulldozer" title="Abreissen - $10"><img src="icons/commands/destroy.png" alt="Abreissen" width="64" height="64"></button>
+            <button class="tool-btn active" data-tool="residential" title="Wohngebiet - $100"><img src="icons/commands/residential.png" alt="Wohngebiet" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="commercial" title="Gewerbe - $100"><img src="icons/commands/commercial.png" alt="Gewerbe" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="industrial" title="Industrie - $100"><img src="icons/commands/induatrial.png" alt="Industrie" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="road" title="Straße - $10"><img src="icons/commands/road.png" alt="Strasse" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="power" title="Kraftwerk - $3000"><img src="icons/commands/powerplant.png" alt="Kraftwerk" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="powerline" title="Stromleitung - $5"><img src="icons/commands/powerline.png" alt="Stromleitung" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="waterpump" title="Wasserpumpe - $1500"><img src="icons/commands/waterpunp.png" alt="Wasserpumpe" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="waterline" title="Wasserleitung - $5"><img src="icons/commands/waterline.png" alt="Wasserleitung" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="park" title="Park - $20"><img src="icons/commands/park.png" alt="Park" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="hospital" title="Krankenhaus - $500"><img src="icons/commands/hospital.png" alt="Krankenhaus" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="police" title="Polizei - $500"><img src="icons/commands/police.png" alt="Polizei" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="school" title="Schule - $300"><img src="icons/commands/school.png" alt="Schule" width="64" height="64"></button>
+            <button class="tool-btn" data-tool="library" title="Bibliothek - $400"><img src="icons/commands/library.png" alt="Bibliothek" width="64" height="64"></button>
         </div>
         
         <div id="info">
@@ -233,7 +240,7 @@
                     // Authenticated - load game
                     const script = document.createElement('script');
                     script.type = 'module';
-                    script.src = '/game/dist/main.js?v=24';
+                    script.src = 'dist/main.js?v=24';
                     document.body.appendChild(script);
                     
                 } catch (error) {
