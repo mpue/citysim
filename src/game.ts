@@ -476,7 +476,7 @@ export class Game {
         }
     }
 
-    private saveGame(): void {
+    private async saveGame(): Promise<void> {
         try {
             console.log('saveGame() aufgerufen');
             
@@ -499,14 +499,51 @@ export class Game {
                 timestamp: Date.now()
             };
             
+            // Check if we're in authenticated mode
+            try {
+                const authCheck = await fetch('/api/auth/check');
+                const authResult = await authCheck.json();
+                
+                if (authResult.authenticated) {
+                    console.log('Speichere auf Server...');
+                    // Save to server
+                    const response = await fetch('/api/saves', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            saveName: saveName,
+                            cityName: saveName,
+                            population: this.stats.population,
+                            money: this.stats.money,
+                            gameYear: this.stats.year,
+                            gameData: saveData
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        console.log('Erfolgreich auf Server gespeichert!');
+                        this.showInfo('Spiel erfolgreich gespeichert als "' + saveName + '"!');
+                        alert('Spiel erfolgreich gespeichert als "' + saveName + '"!');
+                    } else {
+                        throw new Error(result.message || 'Server-Fehler');
+                    }
+                    return;
+                }
+            } catch (authError) {
+                console.log('Not authenticated, using localStorage fallback');
+            }
+            
+            // Fallback to localStorage for local mode
             const saveKey = `citysim_save_${saveName}`;
-            console.log('Speichere unter Key:', saveKey);
+            console.log('Speichere lokal unter Key:', saveKey);
             
             const jsonString = JSON.stringify(saveData);
             console.log('JSON-Groesse:', jsonString.length, 'Zeichen');
             
             localStorage.setItem(saveKey, jsonString);
-            console.log('Erfolgreich gespeichert!');
+            console.log('Erfolgreich lokal gespeichert!');
             
             this.showInfo('Spiel erfolgreich gespeichert als "' + saveName + '"!');
             alert('Spiel erfolgreich gespeichert als "' + saveName + '"!');

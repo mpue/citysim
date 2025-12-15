@@ -27,9 +27,11 @@ const limiter = rateLimit({
 });
 
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 5, // limit each IP to 5 login attempts per windowMs
-    message: 'Zu viele Login-Versuche, bitte versuchen Sie es später erneut'
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // limit each IP to 20 login attempts per windowMs
+    message: 'Zu viele Login-Versuche, bitte versuchen Sie es später erneut',
+    standardHeaders: true,
+    legacyHeaders: false
 });
 
 app.use('/api/login', authLimiter);
