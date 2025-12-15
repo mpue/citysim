@@ -74,7 +74,6 @@ function isAdmin(req, res, next) {
 
 // Serve static files
 app.use('/static', express.static(path.join(__dirname, 'public')));
-app.use('/game', isAuthenticated, express.static(path.join(__dirname, '..')));
 
 // ==================== PUBLIC ROUTES ====================
 
@@ -190,6 +189,15 @@ app.post('/api/logout', isAuthenticated, (req, res) => {
 });
 
 // ==================== USER API ====================
+
+// Check session status
+app.get('/api/auth/check', (req, res) => {
+    if (req.session && req.session.userId) {
+        res.json({ success: true, authenticated: true, userId: req.session.userId });
+    } else {
+        res.json({ success: false, authenticated: false });
+    }
+});
 
 // Get current user info
 app.get('/api/user/me', isAuthenticated, (req, res) => {
@@ -355,12 +363,64 @@ app.get('/api/admin/stats', isAuthenticated, isAdmin, (req, res) => {
     res.json({ success: true, stats });
 });
 
+// Create new user (admin only)
+app.post('/api/admin/users', isAuthenticated, isAdmin, [
+    body('username').trim().isLength({ min: 3, max: 20 })
+        .withMessage('Benutzername muss 3-20 Zeichen lang sein')
+        .matches(/^[a-zA-Z0-9_]+$/).withMessage('Nur Buchstaben, Zahlen und Unterstriche erlaubt'),
+    body('email').trim().isEmail().withMessage('Gültige E-Mail-Adresse erforderlich'),
+    body('password').isLength({ min: 6 }).withMessage('Passwort muss mindestens 6 Zeichen lang sein'),
+    body('displayName').optional().trim().isLength({ max: 50 }),
+    body('role').isIn(['player', 'admin']).withMessage('Ungültige Rolle')
+], (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: errors.array()[0].msg });
+    }
+
+    const { username, email, password, displayName, role } = req.body;
+
+    // Check if user already exists
+    if (db.getUserByUsername(username)) {
+        return res.status(400).json({ success: false, message: 'Benutzername bereits vergeben' });
+    }
+
+    if (db.getUserByEmail(email)) {
+        return res.status(400).json({ success: false, message: 'E-Mail-Adresse bereits registriert' });
+    }
+
+    try {
+        const userId = db.createUser(username, email, password, displayName, role);
+        db.logActivity(req.session.userId, 'admin_user_create', `Created user: ${username} (ID: ${userId})`, req.ip);
+
+        res.json({
+            success: true,
+            message: 'Benutzer erfolgreich erstellt',
+            userId
+        });
+    } catch (error) {
+        console.error('User creation error:', error);
+        res.status(500).json({ success: false, message: 'Fehler beim Erstellen des Benutzers' });
+    }
+});
+
 // Update user (admin only)
 app.put('/api/admin/users/:id', isAuthenticated, isAdmin, (req, res) => {
     const updates = {};
     if (req.body.email) updates.email = req.body.email;
     if (req.body.displayName) updates.display_name = req.body.displayName;
     if (req.body.isActive !== undefined) updates.is_active = req.body.isActive ? 1 : 0;
+    if (req.body.role && ['player', 'admin'].includes(req.body.role)) updates.role = req.body.role;
+
+    // Handle password update separately if provided
+    if (req.body.password) {
+        if (req.body.password.length < 6) {
+            return res.status(400).json({ success: false, message: 'Passwort muss mindestens 6 Zeichen lang sein' });
+        }
+        if (!db.updatePassword(req.params.id, req.body.password)) {
+            return res.status(500).json({ success: false, message: 'Fehler beim Aktualisieren des Passworts' });
+        }
+    }
 
     if (db.updateUser(req.params.id, updates)) {
         db.logActivity(req.session.userId, 'admin_user_update', `User ID: ${req.params.id}`, req.ip);
@@ -376,9 +436,9 @@ app.delete('/api/admin/users/:id', isAuthenticated, isAdmin, (req, res) => {
         return res.status(400).json({ success: false, message: 'Sie können sich nicht selbst löschen' });
     }
 
-    if (db.deleteUser(req.params.id)) {
+    if (db.permanentDeleteUser(req.params.id)) {
         db.logActivity(req.session.userId, 'admin_user_delete', `User ID: ${req.params.id}`, req.ip);
-        res.json({ success: true, message: 'Benutzer deaktiviert' });
+        res.json({ success: true, message: 'Benutzer gelöscht' });
     } else {
         res.status(500).json({ success: false, message: 'Fehler beim Löschen' });
     }
@@ -401,9 +461,18 @@ app.get('/admin', isAuthenticated, isAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// Game route
+// Game route - Load game ONLY if authenticated
 app.get('/game', isAuthenticated, (req, res) => {
+    // Log game access
+    db.logActivity(req.session.userId, 'game_access', null, req.ip);
     res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
+// All game resources MUST go through authentication
+app.get('/game/*', isAuthenticated, (req, res, next) => {
+    // Remove '/game' prefix and serve file
+    const filePath = req.path.substring(5); // Remove '/game'
+    res.sendFile(path.join(__dirname, '..', filePath));
 });
 
 // Root redirect

@@ -79,7 +79,7 @@ export class Game {
         this.deltaTime = 0;
         this.backgroundMusic = [];
         this.currentTrack = 0;
-        this.clickSound = new Audio('fx/click.wav');
+        this.clickSound = new Audio('/game/fx/click.wav');
         this.clickSound.volume = 0.5;  // 50% Lautstärke
         this.populationHistory = [];
         this.populationGraphCanvas = document.getElementById('population-graph') as HTMLCanvasElement;
@@ -113,8 +113,8 @@ export class Game {
 
     private setupBackgroundMusic(): void {
         // Lade beide Tracks
-        const track1 = new Audio('songs/The_quietness_part1.mp3');
-        const track2 = new Audio('songs/The_quietness_part2.mp3');
+        const track1 = new Audio('/game/songs/The_quietness_part1.mp3');
+        const track2 = new Audio('/game/songs/The_quietness_part2.mp3');
         
         track1.volume = 0.3;  // 30% Lautstärke
         track2.volume = 0.3;

@@ -108,6 +108,109 @@
             border: 1px solid #ddd;
             border-radius: 6px;
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+            margin: 0;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .btn-full {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -165,6 +268,7 @@
                     <option value="1">Aktiv</option>
                     <option value="0">Inaktiv</option>
                 </select>
+                <button class="btn btn-primary" onclick="openCreateUserModal()">➕ Neuer Benutzer</button>
                 <button class="btn btn-primary" onclick="loadUsers()">🔄 Aktualisieren</button>
             </div>
 
@@ -190,6 +294,71 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit User Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Neuen Benutzer anlegen</h2>
+                <span class="close" onclick="closeUserModal()">&times;</span>
+            </div>
+            <form id="userForm">
+                <input type="hidden" id="userId" value="">
+                
+                <div class="form-group">
+                    <label for="formUsername">Benutzername *</label>
+                    <input type="text" id="formUsername" name="username" required 
+                           pattern="[a-zA-Z0-9_]{3,20}"
+                           placeholder="3-20 Zeichen, nur Buchstaben, Zahlen und _">
+                    <small>3-20 Zeichen, nur Buchstaben, Zahlen und Unterstriche</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="formEmail">E-Mail *</label>
+                    <input type="email" id="formEmail" name="email" required 
+                           placeholder="benutzer@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="formDisplayName">Anzeigename</label>
+                    <input type="text" id="formDisplayName" name="displayName" 
+                           maxlength="50"
+                           placeholder="Optional: Name zur Anzeige">
+                </div>
+
+                <div class="form-group">
+                    <label for="formPassword">Passwort *</label>
+                    <input type="password" id="formPassword" name="password" required 
+                           minlength="6"
+                           placeholder="Mindestens 6 Zeichen">
+                    <small>Mindestens 6 Zeichen</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="formRole">Rolle *</label>
+                    <select id="formRole" name="role" required>
+                        <option value="player">Spieler</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="formIsActive" name="isActive" checked>
+                        Benutzer ist aktiv
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
+                    Benutzer erstellen
+                </button>
+                <button type="button" class="btn btn-full" onclick="closeUserModal()" 
+                        style="background: #95a5a6; margin-top: 10px;">
+                    Abbrechen
+                </button>
+            </form>
         </div>
     </div>
 
@@ -257,10 +426,12 @@
                     <td>${user.last_login ? formatDate(user.last_login) : 'Nie'}</td>
                     <td>
                         <div class="action-buttons">
+                            <button class="btn btn-primary btn-small" onclick="editUser(${user.id})" title="Bearbeiten">✏️</button>
                             ${user.is_active ? 
                                 `<button class="btn btn-danger btn-small" onclick="toggleUserStatus(${user.id}, 0)">Deaktivieren</button>` :
                                 `<button class="btn btn-primary btn-small" onclick="toggleUserStatus(${user.id}, 1)">Aktivieren</button>`
                             }
+                            <button class="btn btn-danger btn-small" onclick="deleteUser(${user.id})" title="Löschen">🗑️</button>
                         </div>
                     </td>
                 </tr>
@@ -313,6 +484,141 @@
                 showMessage('Fehler beim Aktualisieren des Benutzers', 'error');
             }
         }
+
+        function openCreateUserModal() {
+            document.getElementById('modalTitle').textContent = 'Neuen Benutzer anlegen';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+            document.getElementById('formIsActive').checked = true;
+            document.getElementById('submitBtn').textContent = 'Benutzer erstellen';
+            document.getElementById('userModal').style.display = 'block';
+        }
+
+        function editUser(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) return;
+
+            document.getElementById('modalTitle').textContent = 'Benutzer bearbeiten';
+            document.getElementById('userId').value = user.id;
+            document.getElementById('formUsername').value = user.username;
+            document.getElementById('formEmail').value = user.email;
+            document.getElementById('formDisplayName').value = user.display_name || '';
+            document.getElementById('formPassword').required = false;
+            document.getElementById('formPassword').placeholder = 'Leer lassen für keine Änderung';
+            document.getElementById('formRole').value = user.role;
+            document.getElementById('formIsActive').checked = user.is_active === 1;
+            document.getElementById('submitBtn').textContent = 'Änderungen speichern';
+            document.getElementById('userModal').style.display = 'block';
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+            document.getElementById('formPassword').required = true;
+            document.getElementById('formPassword').placeholder = 'Mindestens 6 Zeichen';
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Möchten Sie diesen Benutzer wirklich PERMANENT löschen? Diese Aktion kann nicht rückgängig gemacht werden!')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('✓ Benutzer erfolgreich gelöscht', 'success');
+                    loadUsers();
+                    loadStats();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Fehler beim Löschen des Benutzers', 'error');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('formUsername').value;
+            const email = document.getElementById('formEmail').value;
+            const displayName = document.getElementById('formDisplayName').value;
+            const password = document.getElementById('formPassword').value;
+            const role = document.getElementById('formRole').value;
+            const isActive = document.getElementById('formIsActive').checked;
+
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Wird verarbeitet...';
+
+            try {
+                let response;
+                
+                if (userId) {
+                    // Update existing user
+                    const updateData = {
+                        email,
+                        displayName,
+                        role,
+                        isActive
+                    };
+                    if (password) {
+                        updateData.password = password;
+                    }
+                    
+                    response = await fetch(`/api/admin/users/${userId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updateData)
+                    });
+                } else {
+                    // Create new user
+                    response = await fetch('/api/admin/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username,
+                            email,
+                            password,
+                            displayName,
+                            role
+                        })
+                    });
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage(`✓ Benutzer erfolgreich ${userId ? 'aktualisiert' : 'erstellt'}`, 'success');
+                    closeUserModal();
+                    loadUsers();
+                    loadStats();
+                } else {
+                    showMessage(data.message, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            } catch (error) {
+                showMessage('Fehler beim Speichern des Benutzers', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('userModal');
+            if (event.target === modal) {
+                closeUserModal();
+            }
+        };
 
         function escapeHtml(text) {
             const div = document.createElement('div');

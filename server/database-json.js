@@ -155,10 +155,30 @@ class DatabaseManager {
     }
 
     deleteUser(userId) {
+        // Soft delete - only deactivate
         this.db.get('users')
             .find({ id: userId })
             .assign({ is_active: 0 })
             .write();
+        return true;
+    }
+
+    permanentDeleteUser(userId) {
+        // Hard delete - completely remove user and associated data
+        this.db.get('users')
+            .remove({ id: userId })
+            .write();
+        
+        // Delete all saves from this user
+        this.db.get('game_saves')
+            .remove({ user_id: userId })
+            .write();
+        
+        // Delete all activity logs from this user
+        this.db.get('activity_log')
+            .remove({ user_id: userId })
+            .write();
+        
         return true;
     }
 
