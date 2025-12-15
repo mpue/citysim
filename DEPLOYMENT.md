@@ -156,12 +156,22 @@ node install-service.js
 
 ## Option 2: Docker Deployment
 
+### Voraussetzungen
+- Docker installiert
+- Docker Compose installiert
+
 ### Schritt 1: Docker Image bauen
 
 ```bash
 cd /pfad/zu/citysim
 docker-compose build
 ```
+
+**Hinweis:** Der Build-Prozess:
+- Installiert alle Dependencies
+- Kompiliert TypeScript
+- Minifiziert JavaScript
+- Dauert ca. 2-5 Minuten beim ersten Mal
 
 ### Schritt 2: Container starten
 
@@ -425,6 +435,25 @@ docker-compose ps
 ---
 
 ## Troubleshooting
+
+### Docker-Build schlägt fehl
+
+**Problem: `npm ci` kann nicht ohne package-lock.json arbeiten**
+```
+npm error The `npm ci` command can only install with an existing package-lock.json
+```
+
+**Lösung:** Das Dockerfile wurde bereits angepasst und verwendet `npm install --omit=dev` statt `npm ci`.
+Falls du eine ältere Version hast, aktualisiere das Dockerfile oder generiere package-lock.json:
+```bash
+# Im Hauptverzeichnis
+npm install --package-lock-only
+
+# Im Server-Verzeichnis
+cd server
+npm install --package-lock-only
+cd ..
+```
 
 ### Port bereits belegt
 

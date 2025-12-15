@@ -4,7 +4,7 @@ FROM node:18-alpine
 # Arbeitsverzeichnis erstellen
 WORKDIR /app
 
-# Kopiere alle package.json Dateien
+# Kopiere package.json und package-lock.json Dateien
 COPY package*.json ./
 COPY server/package*.json ./server/
 
@@ -13,7 +13,7 @@ RUN npm install
 
 # Installiere Backend Dependencies
 WORKDIR /app/server
-RUN npm ci --production
+RUN npm install --omit=dev
 
 # Zurück zum Root und kopiere Quellcode
 WORKDIR /app
