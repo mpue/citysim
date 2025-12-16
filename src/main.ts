@@ -5,14 +5,41 @@ let game: Game | null = null;
 
 // Startscreen verwalten
 window.addEventListener('load', () => {
+    checkForDashboardSave();
     setupStartScreen();
 });
 
+// Make loadSavedGames globally accessible
+(window as any).loadSavedGames = loadSavedGames;
+
+// Check if we're loading a save from dashboard
+async function checkForDashboardSave(): Promise<void> {
+    const loadSaveData = sessionStorage.getItem('loadSaveData');
+    if (loadSaveData) {
+        try {
+            const saveData = JSON.parse(loadSaveData);
+            sessionStorage.removeItem('loadSaveData'); // Clean up
+            
+            // Load game directly with this data
+            hideStartScreen();
+            game = new Game('gameCanvas');
+            
+            setTimeout(() => {
+                if (game && saveData.id) {
+                    (game as any).loadGameFromServer(saveData.id);
+                }
+            }, 100);
+        } catch (e) {
+            console.error('Error loading save from sessionStorage:', e);
+            sessionStorage.removeItem('loadSaveData');
+        }
+    }
+}
+
 function setupStartScreen(): void {
     const newGameBtn = document.getElementById('new-game-btn');
-    const savedGamesList = document.getElementById('saved-games-list');
     
-    // Neue Stadt Button
+    // Neue Stadt Button - always set up
     if (newGameBtn) {
         newGameBtn.addEventListener('click', () => {
             startNewGame();

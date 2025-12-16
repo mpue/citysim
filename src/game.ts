@@ -162,6 +162,7 @@ export class Game {
         const loadBtn = document.getElementById('load-btn');
         const loanBtn = document.getElementById('loan-btn');
         const trafficBtn = document.getElementById('traffic-btn');
+        const mainMenuBtn = document.getElementById('main-menu-btn');
         
         if (saveBtn) {
             saveBtn.addEventListener('click', () => this.saveGame());
@@ -174,6 +175,9 @@ export class Game {
         }
         if (trafficBtn) {
             trafficBtn.addEventListener('click', () => this.toggleTrafficDensity());
+        }
+        if (mainMenuBtn) {
+            mainMenuBtn.addEventListener('click', () => this.returnToMainMenu());
         }
         
         // Bank Dialog Event Listeners
@@ -473,6 +477,40 @@ export class Game {
             this.showInfo('🎉 Kredit vollständig zurückgezahlt! Sie sind schuldenfrei!');
         } else {
             this.showInfo(`✓ $${amount.toLocaleString()} zurückgezahlt. Restschuld: $${this.stats.loan.toLocaleString()}`);
+        }
+    }
+
+    private returnToMainMenu(): void {
+        const confirmMessage = 'Möchten Sie zum Hauptmenü zurückkehren? Nicht gespeicherte Änderungen gehen verloren!';
+        
+        if (confirm(confirmMessage)) {
+            // Stop simulation
+            if (this.simulationInterval) {
+                clearInterval(this.simulationInterval);
+                this.simulationInterval = null;
+            }
+            
+            // Stop music
+            this.backgroundMusic.forEach(track => {
+                track.pause();
+                track.currentTime = 0;
+            });
+            
+            // Show start screen and hide game
+            const startScreen = document.getElementById('start-screen');
+            const container = document.getElementById('container');
+            
+            if (startScreen) {
+                startScreen.style.display = 'flex';
+            }
+            if (container) {
+                container.style.display = 'none';
+            }
+            
+            // Reload saved games list
+            if (typeof (window as any).loadSavedGames === 'function') {
+                (window as any).loadSavedGames();
+            }
         }
     }
 
